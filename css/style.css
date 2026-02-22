@@ -273,7 +273,7 @@ header nav ul li a:hover {
 /* 小さい画面（スマホ）対応 */
 @media (max-width: 400px) {
   #details-wrapper {
-    min-height: unset; /* 自動で高さが伸びる */
+    min-height: 220px;
   }
 
   .service-detail p {

@@ -1,0 +1,429 @@
+/* 全体設定 */
+body {
+  font-family: "Noto Sans JP", sans-serif;
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
+  color: #333;
+  background-color: #f9f9f9;
+}
+
+/* ヘッダーとナビゲーション */
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #003366; /* ヘッダー色 */
+  color: #fff;
+}
+
+.logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: #fff;
+}
+
+.logo {
+  width: 50px; /* ロゴのサイズ */
+  height: auto;
+  margin-right: 10px;
+}
+
+.company-name {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+/* ナビゲーション */
+.main-nav ul {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 20px;
+}
+
+.main-nav a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.main-nav a:hover {
+  color: #ffd700;
+}
+
+header {
+  background-color: #004080;
+  color: white;
+  padding: 10px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+header nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+header nav ul li {
+  margin-left: 20px;
+}
+
+header nav ul li a {
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+header nav ul li a:hover {
+  text-decoration: underline;
+}
+
+/* =====================
+   ホーム
+===================== */
+/* ヒーローセクション */
+.hero {
+  position: relative;
+  background-color: #001a33; /* ロゴに合う濃い色 */
+  background-image: url("../images/background.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  padding: 100px 20px;
+  color: white;
+  text-align: center;
+
+  opacity: 0; /* 初期は透明 */
+  transition: opacity 1s ease;
+  will-change: opacity;
+}
+
+/* 表示後 */
+.hero.show {
+  opacity: 1;
+}
+
+/* 黒い半透明レイヤー */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* 文字を前面に */
+.hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hero h1 {
+  font-size: 2em;
+  margin-bottom: 10px;
+}
+
+.hero p {
+  font-size: 1em;
+}
+
+.hero-header {
+  display: flex;
+  justify-content: center; /* 中央揃え */
+  align-items: center; /* 縦中央揃え */
+  gap: 15px; /* ロゴと文字の間隔 */
+  margin-bottom: 20px;
+}
+
+.hero-company-name {
+  color: white;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+/* ニュースセクション */
+.news {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 20px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* =====================
+   サービス
+===================== */
+/* ページ全体のラッパー */
+.page-wrapper {
+  width: 100%;
+  max-width: 1200px; /* PC最大幅 */
+  margin: 0 auto; /* 中央寄せ */
+  padding: 0 15px; /* 左右の余白 */
+  box-sizing: border-box; /* paddingを幅に含める */
+}
+
+#services h2 {
+  text-align: center;
+  font-size: 28px;
+  margin-bottom: 20px;
+  font-weight: bold;
+  color: #003366;
+}
+
+/* サービスカード */
+.services-container {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.service-card {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 280px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  border: 2px solid transparent; /* 枠は透明で初期化。activeになったときにborderが追加されても、カードサイズが変わらず上下にズレないようにする */
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border 0.2s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.service-card.active {
+  border-color: #004080; /* 色だけ変える */
+  border: 2px solid #004080;
+  background-color: #f0f8ff;
+}
+
+.service-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.service-icon {
+  font-size: 26px;
+  width: 32px;
+  text-align: center;
+}
+
+.service-card h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+#details-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 1000px;
+  min-height: 100px;
+  overflow: hidden;
+  margin: 20px auto;
+  border-radius: 8px;
+  background-color: #e6f0ff;
+}
+
+.service-detail {
+  position: absolute;
+  width: 100%;
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 0.6s ease;
+  left: 0;
+  text-align: center;
+}
+
+.service-detail.active {
+  opacity: 1;
+  transform: translateX(0);
+  z-index: 2;
+}
+
+.service-detail.exit {
+  opacity: 0;
+  transform: translateX(-100%);
+  z-index: 1;
+}
+
+.service-detail p {
+  font-size: 17px;
+  line-height: 1.8;
+  font-weight: 500;
+}
+
+.indicator-container {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin: 0 6px;
+  background-color: #ccc;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.indicator.active {
+  background-color: #004080;
+}
+
+/* 検証範囲テーブル */
+.verification-range {
+  margin-top: 60px;
+}
+
+.verification-range h3 {
+  text-align: center;
+  font-size: 24px;
+  color: #003366;
+  margin-bottom: 10px;
+}
+
+.verification-range .note {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #555;
+}
+
+.table-wrapper {
+  max-width: 1000px;
+  margin: 30px auto; /* 中央寄せ */
+  overflow-x: auto; /* スマホ対応 */
+}
+
+.range-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.range-table th,
+.range-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.range-table th {
+  background: #003366;
+  color: white;
+  text-align: center;
+}
+
+.range-table td {
+  vertical-align: middle;
+}
+
+.range-table tr:nth-child(even) {
+  background: #f7f9fc;
+}
+
+/* =====================
+   会社情報
+===================== */
+#about {
+  max-width: 700px;
+  margin: 40px auto;
+  padding: 20px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* =====================
+   よくあるご質問
+===================== */
+.faq-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.faq-page h1 {
+  text-align: center;
+  margin-bottom: 40px;
+  color: #003366;
+}
+
+.faq-item {
+  margin-bottom: 30px;
+  padding: 20px;
+  border-left: 4px solid #003366;
+  background: #f8f9fb;
+  border-radius: 6px;
+}
+
+.faq-item h2 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: #003366;
+}
+
+.faq-item p {
+  line-height: 1.7;
+}
+
+/* =====================
+   お問い合わせ・ご依頼
+===================== */
+#contact {
+  max-width: 700px;
+  margin: 40px auto;
+  padding: 20px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+#contact iframe {
+  width: 100%;
+  border: none;
+}
+
+.contact-btn {
+  display: inline-block;
+  padding: 10px 20px;
+  background-color: #003366;
+  color: #fff;
+  border-radius: 5px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.contact-btn:hover {
+  background-color: #0055aa;
+}
+
+/* フッター */
+footer {
+  background-color: #004080;
+  color: white;
+  text-align: center;
+  padding: 15px 10px;
+  font-size: 0.9em;
+  margin-top: 40px;
+}

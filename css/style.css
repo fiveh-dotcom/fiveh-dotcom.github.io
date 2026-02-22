@@ -234,7 +234,7 @@ header nav ul li a:hover {
   position: relative;
   width: 100%;
   max-width: 1000px;
-  min-height: 100px;
+  min-height: 150px;
   overflow: hidden;
   margin: 20px auto;
   border-radius: 8px;
@@ -245,21 +245,22 @@ header nav ul li a:hover {
   position: absolute;
   width: 100%;
   opacity: 0;
-  transform: translateX(100%);
+  transform: translateY(-50%) translateX(100%);
   transition: all 0.6s ease;
+  top: 50%;
   left: 0;
   text-align: center;
 }
 
 .service-detail.active {
   opacity: 1;
-  transform: translateX(0);
+  transform: translateY(-50%) translateX(0);
   z-index: 2;
 }
 
 .service-detail.exit {
   opacity: 0;
-  transform: translateX(-100%);
+  transform: translateY(-50%) translateX(-100%);
   z-index: 1;
 }
 

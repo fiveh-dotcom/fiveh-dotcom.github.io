@@ -271,14 +271,14 @@ header nav ul li a:hover {
 }
 
 /* 小さい画面（スマホ）対応 */
-@media (max-width: 600px) {
+@media (max-width: 400px) {
   #details-wrapper {
     min-height: unset; /* 自動で高さが伸びる */
   }
 
   .service-detail p {
-    font-size: 14px; /* 文字サイズを少し下げて見切れ防止 */
-    line-height: 1.6;
+    font-size: 13px; /* 文字サイズを少し下げて見切れ防止 */
+    line-height: 1.5;
   }
 }
 

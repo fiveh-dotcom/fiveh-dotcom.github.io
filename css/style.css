@@ -235,7 +235,7 @@ header nav ul li a:hover {
   width: 100%;
   max-width: 1000px;
   min-height: 100px;
-  overflow: hidden;
+  overflow: visible; /* はみ出しても文字が切れない */
   margin: 20px auto;
   border-radius: 8px;
   background-color: #e6f0ff;

@@ -271,7 +271,7 @@ header nav ul li a:hover {
 }
 
 /* 小さい画面（スマホ）対応 */
-@media (max-width: 400px) {
+@media (max-width: 375px) {
   #details-wrapper {
     min-height: 220px;
   }

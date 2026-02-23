@@ -276,7 +276,7 @@ canvas.addEventListener("touchstart", (e) => {
   touchPrevY = t.clientY;
 });
 
-canvas.addEventListener("touchmove", (e) => {
+window.addEventListener("touchmove", (e) => {
   e.preventDefault(); // スクロール防止
   if (!currentBlock) return;
 
@@ -298,7 +298,7 @@ canvas.addEventListener("touchmove", (e) => {
   }
 });
 
-canvas.addEventListener("touchend", (e) => {
+window.addEventListener("touchend", (e) => {
   const t = e.changedTouches[0];
   const dy = t.clientY - touchPrevY;
 
@@ -312,6 +312,12 @@ canvas.addEventListener("touchend", (e) => {
     while (canMove(currentBlock.x, currentBlock.y + 1)) currentBlock.y++;
     drop();
   }
+});
+
+window.addEventListener("touchcancel", () => {
+  isTouching = false;
+  touchDropLock = false;
+  dropCounter = 0;
 });
 
 // ゲームループ

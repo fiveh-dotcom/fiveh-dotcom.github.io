@@ -7,6 +7,8 @@ const rows = 10;
 const cols = 10;
 const tileSize = canvas.width / cols;
 
+const TOUCH_DRAG_OFFSET = tileSize * 1.8; // 指より上にずらす量
+
 /* =========================
    Overlay（完全最前面）
 ========================= */
@@ -481,12 +483,15 @@ function startDrag(e, index) {
     clientY = e.clientY;
   }
 
+  const isTouch = e.touches && e.touches.length > 0;
+  const offsetY = isTouch ? TOUCH_DRAG_OFFSET : 0;
+
   draggingBlock = {
     block: JSON.parse(JSON.stringify(block)),
     original: block,
     index,
     x: clientX,
-    y: clientY,
+    y: clientY - offsetY,
   };
 
   currentBlocks[index] = null;
@@ -508,8 +513,17 @@ function drag(e) {
     clientY = e.clientY;
   }
 
-  draggingBlock.x = clientX;
-  draggingBlock.y = clientY;
+  const isTouch = e.touches && e.touches.length > 0;
+
+  if (isTouch) {
+    const offsetY = TOUCH_DRAG_OFFSET; // 指から上にずらす量
+    draggingBlock.x = clientX;
+    draggingBlock.y = clientY - offsetY;
+  } else {
+    // PCはそのまま
+    draggingBlock.x = clientX;
+    draggingBlock.y = clientY;
+  }
 
   drawGrid(); // ゴースト
   syncOverlay(); // 最前面ブロック

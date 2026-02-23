@@ -1,7 +1,7 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-const rows = 12;
+const rows = 15;
 const cols = 10;
 const tileSize = canvas.width / cols;
 const colors = ["#f00", "#0f0", "#00f", "#ff0"];
@@ -38,7 +38,7 @@ function initGrid() {
   // タイルを偶数枚ずつ作る
   let tileList = [];
   colors.forEach((color) => {
-    for (let i = 0; i < 20; i++) tileList.push(color);
+    for (let i = 0; i < 24; i++) tileList.push(color);
   });
 
   // 残りは空白に

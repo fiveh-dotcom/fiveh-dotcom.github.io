@@ -5,9 +5,9 @@ const nextCanvases = document.querySelectorAll(".nextBlockCanvas");
 
 const rows = 10;
 const cols = 10;
-const tileSize = canvas.width / cols;
+const tileSize = Math.min(canvas.width / cols, canvas.height / rows);
 
-const TOUCH_DRAG_OFFSET = tileSize * 2.0; // 指より上にずらす量
+const TOUCH_DRAG_OFFSET = tileSize * 2.1; // 指より上にずらす量
 
 /* =========================
    Overlay（完全最前面）

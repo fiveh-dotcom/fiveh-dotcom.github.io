@@ -59,6 +59,38 @@ cards.forEach((c, i) => {
   });
 });
 
+let startX = 0;
+const detailsWrapper = document.getElementById("details-wrapper");
+
+// --- スワイプ処理 ---
+detailsWrapper.addEventListener("touchstart", (e) => {
+  startX = e.touches[0].clientX;
+});
+
+detailsWrapper.addEventListener("touchend", (e) => {
+  const endX = e.changedTouches[0].clientX;
+  const diff = endX - startX;
+
+  if (diff > 50) {
+    // 右スワイプ → 次のスライド
+    let nextIndex = (currentIndex + 1) % details.length;
+    showDetail(nextIndex);
+    resetAutoSlide();
+  } else if (diff < -50) {
+    // 左スワイプ → 前のスライド
+    let prevIndex = currentIndex - 1;
+    if (prevIndex < 0) prevIndex = details.length - 1;
+    showDetail(prevIndex);
+    resetAutoSlide();
+  }
+});
+
+// タイマーリセット関数
+function resetAutoSlide() {
+  clearInterval(autoSlideInterval);
+  startAutoSlide();
+}
+
 // インジケータークリックで切替＋タイマーリセット
 indicators.forEach((i, idx) => {
   i.addEventListener("click", () => {
@@ -84,8 +116,6 @@ cards.forEach((card, index) => {
     }
   });
 });
-
-const detailsWrapper = document.getElementById("details-wrapper");
 
 // マウス乗ったら停止
 detailsWrapper.addEventListener("mouseenter", () => {

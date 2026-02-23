@@ -27,6 +27,13 @@
           <li><a href="contact.html">お問い合わせ・ご依頼</a></li>
         </ul>
       </nav>
+
+      <!-- ハンバーガーボタン -->
+      <div class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
     </header>
 
     <section id="about">
@@ -35,6 +42,15 @@
       <p>設立: 2025/06/02</p>
       <p>所在地: 〒028-0105 岩手県花巻市東和町前田9区326番地2</p>
     </section>
+
+    <script>
+      const hamburger = document.querySelector(".hamburger");
+      const mainNav = document.querySelector(".main-nav");
+
+      hamburger.addEventListener("click", () => {
+        mainNav.classList.toggle("active");
+      });
+    </script>
 
     <footer>
       <p>株式会社ファイブエイチ | 〒028-0105 岩手県花巻市東和町前田9区326番地2</p>

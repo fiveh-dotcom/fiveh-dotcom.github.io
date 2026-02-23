@@ -276,13 +276,21 @@ canvas.addEventListener("touchstart", (e) => {
   touchPrevY = t.clientY;
 });
 
+function clampTouchToCanvas(touch) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: Math.max(rect.left, Math.min(touch.clientX, rect.right)),
+    y: Math.max(rect.top, Math.min(touch.clientY, rect.bottom)),
+  };
+}
+
 window.addEventListener("touchmove", (e) => {
   e.preventDefault(); // スクロール防止
   if (!currentBlock) return;
 
-  const t = e.touches[0];
-  const dx = t.clientX - touchPrevX;
-  const dy = t.clientY - touchPrevY;
+  const t = clampTouchToCanvas(e.touches[0]);
+  const dx = t.x - touchPrevX;
+  const dy = t.y - touchPrevY;
 
   // 横移動（1マスずつブロックを追従）
   if (Math.abs(dx) > blockSize / 2) {

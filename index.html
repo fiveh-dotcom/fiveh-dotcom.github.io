@@ -29,6 +29,13 @@
           <li><a href="contact.html">お問い合わせ・ご依頼</a></li>
         </ul>
       </nav>
+
+      <!-- ハンバーガーボタン -->
+      <div class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
     </header>
 
     <!-- ヒーロー -->
@@ -105,6 +112,14 @@
       window.addEventListener("load", () => {
         document.querySelector(".hero").classList.add("show");
       });
+
+      const hamburger = document.querySelector(".hamburger");
+      const mainNav = document.querySelector(".main-nav");
+
+      hamburger.addEventListener("click", () => {
+        mainNav.classList.toggle("active");
+      });
+
       (function () {
         const logo = document.getElementById("secretLogo");
         const menu = document.getElementById("gameMenu");

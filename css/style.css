@@ -40,6 +40,12 @@ body {
   font-weight: bold;
 }
 
+@media (max-width: 768px) {
+  .company-name {
+    font-size: 18px;
+  }
+}
+
 /* ナビゲーション */
 .main-nav ul {
   display: flex;
@@ -58,6 +64,50 @@ body {
 
 .main-nav a:hover {
   color: #ffd700;
+}
+
+/* ハンバーガーボタン初期状態（非表示） */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.hamburger span {
+  display: block;
+  width: 25px;
+  height: 3px;
+  background-color: #fff;
+}
+
+@media (max-width: 768px) {
+  /* メニューは非表示にする */
+  .main-nav {
+    display: none;
+    position: absolute;
+    top: 60px; /* ヘッダー下に表示 */
+    right: 20px;
+    background-color: #003366;
+    padding: 10px 15px;
+    border-radius: 5px;
+    flex-direction: column;
+  }
+
+  .main-nav ul {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* ハンバーガーを表示 */
+  .hamburger {
+    display: flex;
+  }
+
+  /* メニューを開いたとき */
+  .main-nav.active {
+    display: flex;
+  }
 }
 
 /* =====================
@@ -119,6 +169,24 @@ body {
 .hero-company-name {
   color: white;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+@media (max-width: 768px) {
+  .hero h1.hero-company-name {
+    font-size: 20px;
+  }
+
+  .hero-logo {
+    width: 60px;
+  }
+
+  .hero h2 {
+    font-size: 16px;
+  }
+
+  .hero p {
+    font-size: 14px;
+  }
 }
 
 /* ニュースセクション */
@@ -201,15 +269,34 @@ body {
   font-size: 18px;
 }
 
+@media (max-width: 768px) {
+  .services-container {
+    flex-direction: column; /* 縦並び */
+    gap: 15px; /* 上下間隔 */
+    align-items: center; /* 中央寄せ */
+  }
+
+  .service-card {
+    width: 90%; /* 横幅を画面に合わせる */
+    max-width: 320px; /* 小さいスマホでも横幅制限 */
+  }
+}
+
 #details-wrapper {
   position: relative;
   width: 100%;
   max-width: 1000px;
-  min-height: 200px;
+  min-height: 100px;
   overflow: hidden;
   margin: 20px auto;
   border-radius: 8px;
   background-color: #e6f0ff;
+}
+
+@media (max-width: 768px) {
+  #details-wrapper {
+    min-height: 200px;
+  }
 }
 
 .service-detail {

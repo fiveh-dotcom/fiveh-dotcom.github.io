@@ -304,6 +304,10 @@ canvas.addEventListener("touchend", (e) => {
 
   // 上方向スワイプで高速落下
   if (!currentBlock) return;
+
+  // 落下タイマーリセット
+  dropCounter = 0;
+
   if (dy < -20) {
     while (canMove(currentBlock.x, currentBlock.y + 1)) currentBlock.y++;
     drop();

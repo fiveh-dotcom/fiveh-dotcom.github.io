@@ -75,18 +75,22 @@ function getTileSize() {
   return canvas.clientWidth / cols;
 }
 
-function drawGrid() {
+function resizeCanvas() {
   const tileSize = getTileSize();
-
-  // 表示サイズに合わせて内部解像度を同期
+  // 内部解像度をCSSに合わせる
   canvas.width = canvas.clientWidth;
   canvas.height = tileSize * rows;
+  return tileSize;
+}
+
+function drawGrid() {
+  const tileSize = resizeCanvas(); // 内部解像度を調整しつつタイルサイズ取得
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // 背景にモノクロマス目を描画
-  ctx.strokeStyle = "#dfdfdf"; // 薄いグレー
-  ctx.lineWidth = 0.3;
+  // 背景のマス目
+  ctx.strokeStyle = "#dfdfdf";
+  ctx.lineWidth = 0.2;
   for (let x = 0; x <= cols; x++) {
     ctx.beginPath();
     ctx.moveTo(x * tileSize, 0);
@@ -124,7 +128,7 @@ function updateUI() {
 // タイルを消す関数
 function handleTileInteraction(clientX, clientY) {
   if (!gameStarted) return;
-  const tileSize = getTileSize();
+  const tileSize = resizeCanvas();
   const rect = canvas.getBoundingClientRect();
   const x = Math.floor((clientX - rect.left) / tileSize);
   const y = Math.floor((clientY - rect.top) / tileSize);

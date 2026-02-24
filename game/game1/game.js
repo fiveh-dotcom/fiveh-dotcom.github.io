@@ -91,17 +91,17 @@ function drawGrid() {
 
   // 背景のマス目
   ctx.strokeStyle = "#dfdfdf";
-  ctx.lineWidth = 0.2;
+  ctx.lineWidth = 0.3;
   for (let x = 0; x <= cols; x++) {
     ctx.beginPath();
-    ctx.moveTo(x * tileSize + 0.5, 0);
-    ctx.lineTo(x * tileSize + 0.5, canvas.height);
+    ctx.moveTo(x * tileSize, 0);
+    ctx.lineTo(x * tileSize, canvas.height);
     ctx.stroke();
   }
   for (let y = 0; y <= rows; y++) {
     ctx.beginPath();
-    ctx.moveTo(0, y * tileSize + 0.5);
-    ctx.lineTo(canvas.width, y * tileSize + 0.5);
+    ctx.moveTo(0, y * tileSize);
+    ctx.lineTo(canvas.width, y * tileSize);
     ctx.stroke();
   }
 

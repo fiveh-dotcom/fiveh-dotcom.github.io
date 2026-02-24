@@ -7,8 +7,8 @@ const canvasHeight = canvas.height;
 let ballRadius = 6;
 let ballX = canvasWidth / 2;
 let ballY = canvasHeight - 30;
-let ballSpeedX = 4;
-let ballSpeedY = -4;
+let ballSpeedX = 7;
+let ballSpeedY = -7;
 
 const paddleHeight = 10;
 const paddleWidth = 100;
@@ -69,71 +69,176 @@ function drawBall() {
   ctx.closePath();
 }
 
+function drawBalls() {
+  balls.forEach((ball) => {
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+    ctx.fillStyle = ball.penetrate ? "#800080" : "#fff"; // ← 貫通中は紫
+    ctx.fill();
+    ctx.closePath();
+  });
+}
+
 function drawPaddle() {
   ctx.fillStyle = "#fff";
   ctx.fillRect(paddleX, canvasHeight - paddleHeight - 10, paddleWidth, paddleHeight);
 }
 
-function collisionDetection() {
-  let allDestroyed = true; // 全ブロック破壊チェック用
+// ================= アイテム設定 =================
+const items = [];
+const itemTypes = ["extraBall", "speedUp", "penetrate"];
+const itemSize = 12;
+const itemSpeed = 3;
 
+function createItem(x, y) {
+  // ランダムでアイテムを作る
+  const type = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+  items.push({ x, y, type, width: itemSize, height: itemSize });
+}
+
+function drawItems() {
+  items.forEach((item) => {
+    // 色をタイプで分ける
+    if (item.type === "extraBall")
+      ctx.fillStyle = "#0f0"; // 緑
+    else if (item.type === "speedUp")
+      ctx.fillStyle = "#ff0"; // 黄色
+    else if (item.type === "penetrate")
+      ctx.fillStyle = "#800080"; // 紫
+    else ctx.fillStyle = "#fff"; // 念のためのデフォルト
+
+    ctx.fillRect(item.x, item.y, item.width, item.height);
+  });
+}
+
+function moveItems() {
+  items.forEach((item, index) => {
+    item.y += itemSpeed;
+
+    // パドルとの当たり判定
+    if (
+      item.y + item.height >= canvasHeight - paddleHeight - 10 &&
+      item.x + item.width >= paddleX &&
+      item.x <= paddleX + paddleWidth
+    ) {
+      applyItemEffect(item.type);
+      items.splice(index, 1); // アイテム消す
+    }
+
+    // 画面下に到達したら消す
+    if (item.y > canvasHeight) {
+      items.splice(index, 1);
+    }
+  });
+}
+
+function applyItemEffect(type) {
+  if (type === "extraBall") {
+    const baseBall = balls[Math.floor(Math.random() * balls.length)];
+    balls.push({
+      x: baseBall.x,
+      y: baseBall.y,
+      speedX: baseBall.speedX,
+      speedY: -baseBall.speedY,
+      radius: baseBall.radius,
+      penetrate: false, // 通常はfalse
+    });
+  } else if (type === "speedUp") {
+    balls.forEach((ball) => {
+      ball.speedX *= 1.5;
+      ball.speedY *= 1.5;
+    });
+  } else if (type === "penetrate") {
+    balls.forEach((ball) => {
+      ball.penetrate = true; // 通過可能に
+    });
+    // 5秒後に解除
+    setTimeout(() => {
+      balls.forEach((ball) => (ball.penetrate = false));
+    }, 5000);
+  }
+}
+
+// 複数ボール用の配列
+let balls = [{ x: ballX, y: ballY, speedX: ballSpeedX, speedY: ballSpeedY, radius: ballRadius }];
+
+function collisionDetection() {
   blocks.forEach((row) => {
     row.forEach((b) => {
       if (!b.destroyed) {
-        allDestroyed = false; // まだ残っているブロックがある
-        if (
-          ballX > b.x &&
-          ballX < b.x + b.width &&
-          ballY - ballRadius > b.y &&
-          ballY - ballRadius < b.y + b.height
-        ) {
-          ballSpeedY = -ballSpeedY;
-          b.destroyed = true;
-          score += 1;
-          document.getElementById("score").innerText = "Score: " + score;
-        }
+        balls.forEach((ball) => {
+          if (
+            ball.x + ball.radius > b.x &&
+            ball.x - ball.radius < b.x + b.width &&
+            ball.y + ball.radius > b.y &&
+            ball.y - ball.radius < b.y + b.height
+          ) {
+            if (!ball.penetrate) ball.speedY = -ball.speedY;
+            b.destroyed = true;
+            score += 1;
+            document.getElementById("score").innerText = "Score: " + score;
+
+            // ここでランダムにアイテムを生成（例: 30%の確率）
+            if (Math.random() < 0.3) {
+              createItem(b.x + b.width / 2 - itemSize / 2, b.y + b.height / 2 - itemSize / 2);
+            }
+          }
+        });
       }
     });
   });
-
-  if (allDestroyed) {
-    alert("クリア！スコア: " + score);
-    gameStarted = false;
-    cancelAnimationFrame(animationId);
-  }
 }
 
 let animationId; // requestAnimationFrame の ID を保持
 
 function draw() {
   ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
   drawBlocks();
-  drawBall();
+  drawItems();
+  drawBalls();
   drawPaddle();
+
+  // まずボール移動前に衝突判定
   collisionDetection();
+  moveItems();
 
-  // 壁反射
-  if (ballX + ballSpeedX > canvasWidth - ballRadius || ballX + ballSpeedX < ballRadius) {
-    ballSpeedX = -ballSpeedX;
-  }
-  if (ballY + ballSpeedY < ballRadius) {
-    ballSpeedY = -ballSpeedY;
-  } else if (ballY + ballSpeedY > canvasHeight - ballRadius - 10) {
-    if (ballX > paddleX && ballX < paddleX + paddleWidth) {
-      ballSpeedY = -ballSpeedY;
-    } else if (ballY + ballSpeedY > canvasHeight - ballRadius) {
-      alert("ゲームオーバー！スコア: " + score);
-      gameStarted = false;
-      cancelAnimationFrame(animationId); // ループ停止
-      return;
+  // ボール移動と壁・パドル反射
+  balls.forEach((ball) => {
+    ball.x += ball.speedX;
+    ball.y += ball.speedY;
+
+    if (ball.x + ball.radius > canvasWidth || ball.x - ball.radius < 0) ball.speedX = -ball.speedX;
+    if (ball.y - ball.radius < 0) ball.speedY = -ball.speedY;
+
+    if (
+      ball.y + ball.radius > canvasHeight - paddleHeight - 10 &&
+      ball.x > paddleX &&
+      ball.x < paddleX + paddleWidth
+    ) {
+      ball.speedY = -ball.speedY;
+    } else if (ball.y + ball.radius > canvasHeight) {
+      // 下に落ちたボールを消す
+      balls = balls.filter((b) => b !== ball);
     }
+  });
+
+  // クリア判定
+  const allDestroyed = blocks.every((row) => row.every((b) => b.destroyed));
+  if (allDestroyed) {
+    alert("クリア！スコア: " + score);
+    gameStarted = false;
+    cancelAnimationFrame(animationId);
+    return;
   }
 
-  ballX += ballSpeedX;
-  ballY += ballSpeedY;
-
-  if (rightPressed && paddleX < canvasWidth - paddleWidth) paddleX += paddleSpeed;
-  if (leftPressed && paddleX > 0) paddleX -= paddleSpeed;
+  // ゲームオーバー判定
+  if (balls.length === 0 && gameStarted) {
+    alert("ゲームオーバー！スコア: " + score);
+    gameStarted = false;
+    cancelAnimationFrame(animationId);
+    return;
+  }
 
   if (gameStarted) animationId = requestAnimationFrame(draw);
 }
@@ -198,20 +303,18 @@ canvas.addEventListener("touchcancel", () => {
 
 // スタートボタン
 document.getElementById("startBtn").addEventListener("click", () => {
-  // 前回のアニメーションが残っていたらキャンセル
   if (animationId) cancelAnimationFrame(animationId);
 
-  // 初期化
-  ballX = canvasWidth / 2;
-  ballY = canvasHeight - 30;
-  ballSpeedX = 3;
-  ballSpeedY = -3;
+  // 複数ボール初期化
+  balls = [{ x: canvasWidth / 2, y: canvasHeight - 30, speedX: 7, speedY: -7, radius: ballRadius }];
+
   paddleX = (canvasWidth - paddleWidth) / 2;
   score = 0;
   rightPressed = false;
   leftPressed = false;
   gameStarted = true;
   createBlocks();
+  items.length = 0; // アイテムもリセット
   document.getElementById("score").innerText = "Score: 0";
   draw();
 });

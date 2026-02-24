@@ -243,7 +243,7 @@ function sleep(ms) {
 
 // アニメーション
 async function animateMerge(fx, fy, tx, ty) {
-  const steps = 5;
+  const steps = 10;
   const val = grid[fy][fx];
   for (let i = 1; i <= steps; i++) {
     drawGrid();
@@ -267,13 +267,18 @@ document.addEventListener("keydown", (e) => {
 });
 
 // スマホ操作（スワイプで操作）
+let isTouching = false;
 let touchPrevX = 0;
 let touchPrevY = 0;
 
 canvas.addEventListener("touchstart", (e) => {
-  const t = e.touches[0];
-  touchPrevX = t.clientX;
-  touchPrevY = t.clientY;
+  if (!gameStarted || !currentBlock || mergeLock) return;
+
+  const t = clampTouchToCanvas(e.touches[0]);
+  touchPrevX = t.x;
+  touchPrevY = t.y;
+
+  isTouching = true;
 });
 
 function clampTouchToCanvas(touch) {
@@ -284,7 +289,7 @@ function clampTouchToCanvas(touch) {
   };
 }
 
-window.addEventListener("touchmove", (e) => {
+canvas.addEventListener("touchmove", (e) => {
   e.preventDefault(); // スクロール防止
   if (!currentBlock) return;
 
@@ -296,22 +301,24 @@ window.addEventListener("touchmove", (e) => {
   if (Math.abs(dx) > blockSize / 2) {
     if (dx > 0 && canMove(currentBlock.x + 1, currentBlock.y)) currentBlock.x++;
     else if (dx < 0 && canMove(currentBlock.x - 1, currentBlock.y)) currentBlock.x--;
-    touchPrevX = t.clientX; // 移動量リセット
+    touchPrevX = t.x; // 移動量リセット
   }
 
   // 下方向は1段ずつ落下
   if (dy > blockSize / 2) {
     drop();
-    touchPrevY = t.clientY;
+    touchPrevY = t.y;
   }
 });
 
-window.addEventListener("touchend", (e) => {
-  const t = e.changedTouches[0];
-  const dy = t.clientY - touchPrevY;
+canvas.addEventListener("touchend", (e) => {
+  isTouching = false;
 
   // 上方向スワイプで高速落下
   if (!currentBlock) return;
+
+  const t = clampTouchToCanvas(e.changedTouches[0]);
+  const dy = t.y - touchPrevY;
 
   // 落下タイマーリセット
   dropCounter = 0;
@@ -338,7 +345,7 @@ function gameLoop(time = performance.now()) {
   lastTime = time;
 
   dropCounter += delta;
-  if (dropCounter > dropInterval) {
+  if (!isTouching && dropCounter > dropInterval) {
     drop();
     dropCounter = 0;
   }

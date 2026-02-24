@@ -3,7 +3,6 @@ const ctx = canvas.getContext("2d");
 
 const rows = 15;
 const cols = 10;
-const tileSize = canvas.width / cols;
 const colors = ["#f00", "#0f0", "#00f", "#ff0"];
 let grid = [];
 let score = 0;
@@ -72,7 +71,17 @@ function updateFallingTiles() {
   }
 }
 
+function getTileSize() {
+  return canvas.clientWidth / cols;
+}
+
 function drawGrid() {
+  const tileSize = getTileSize();
+
+  // 表示サイズに合わせて内部解像度を同期
+  canvas.width = canvas.clientWidth;
+  canvas.height = tileSize * rows;
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // 背景にモノクロマス目を描画
@@ -115,6 +124,7 @@ function updateUI() {
 // タイルを消す関数
 function handleTileInteraction(clientX, clientY) {
   if (!gameStarted) return;
+  const tileSize = getTileSize();
   const rect = canvas.getBoundingClientRect();
   const x = Math.floor((clientX - rect.left) / tileSize);
   const y = Math.floor((clientY - rect.top) / tileSize);

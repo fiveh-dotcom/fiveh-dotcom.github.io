@@ -7,7 +7,7 @@ const rows = 10;
 const cols = 10;
 const tileSize = Math.min(canvas.width / cols, canvas.height / rows);
 
-const TOUCH_DRAG_OFFSET = tileSize * 2.1; // 指より上にずらす量
+const TOUCH_DRAG_OFFSET = tileSize * 2.2; // 指より上にずらす量
 
 /* =========================
    Overlay（完全最前面）
@@ -89,6 +89,15 @@ const blockShapes = [
     weight: 3.5,
   },
 
+  {
+    shape: [
+      [1, 0],
+      [1, 1],
+      [0, 1],
+    ],
+    weight: 3.5,
+  },
+
   // ===== 5マス（普通）
   {
     shape: [
@@ -100,8 +109,42 @@ const blockShapes = [
 
   {
     shape: [
+      [1, 0, 1],
+      [1, 1, 1],
+    ],
+    weight: 2,
+  },
+
+  {
+    shape: [
       [1, 1, 1],
       [1, 1, 0],
+    ],
+    weight: 2,
+  },
+
+  {
+    shape: [
+      [1, 1, 1],
+      [0, 1, 1],
+    ],
+    weight: 2,
+  },
+
+  {
+    shape: [
+      [1, 0],
+      [1, 1],
+      [1, 1],
+    ],
+    weight: 2,
+  },
+
+  {
+    shape: [
+      [0, 1, 0],
+      [1, 1, 1],
+      [0, 1, 0],
     ],
     weight: 2,
   },
@@ -166,11 +209,21 @@ addRotations(
   1.2,
 );
 
+// L字 4マス
+addRotations(
+  [
+    [0, 1],
+    [0, 1],
+    [1, 1],
+  ],
+  1.2,
+);
+
 // T字 4マス
 addRotations(
   [
-    [1, 1, 1],
     [0, 1, 0],
+    [1, 1, 1],
   ],
   1.2,
 );

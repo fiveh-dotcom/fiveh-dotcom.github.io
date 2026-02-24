@@ -86,7 +86,7 @@ function drawGrid() {
 
   // 背景にモノクロマス目を描画
   ctx.strokeStyle = "#dfdfdf"; // 薄いグレー
-  ctx.lineWidth = 0.2;
+  ctx.lineWidth = 0.3;
   for (let x = 0; x <= cols; x++) {
     ctx.beginPath();
     ctx.moveTo(x * tileSize, 0);
@@ -198,6 +198,8 @@ canvas.addEventListener("click", (e) => {
 function startTimer() {
   timerInterval = setInterval(() => {
     time--;
+    if (time < 0) time = 0;
+    updateUI();
     if (time <= 0) {
       time = 0;
       clearInterval(timerInterval);

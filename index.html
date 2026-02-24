@@ -54,8 +54,8 @@
       </div>
 
       <!-- キャッチコピー -->
-      <h2>硬さ試験機のメンテナンス・検証・修理なら</h2>
-      <p>出張検証や定期点検、故障対応まで、信頼のサービスを提供します</p>
+      <h2 class="hero-text">硬さ試験機のメンテナンス・検証・修理なら</h2>
+      <p class="hero-text">出張検証や定期点検、故障対応まで、信頼のサービスを提供します</p>
     </section>
 
     <!-- ニュース -->
@@ -110,7 +110,25 @@
 
     <script>
       window.addEventListener("load", () => {
-        document.querySelector(".hero").classList.add("show");
+        const hero = document.querySelector(".hero");
+        const logo = document.querySelector(".hero-logo");
+        const company = document.querySelector(".hero-company-name");
+        const texts = document.querySelectorAll(".hero-text");
+
+        // 背景フェードイン
+        hero.classList.add("show");
+
+        // ロゴを軽くフェードイン
+        setTimeout(() => logo.classList.add("show"), 500);
+
+        // 会社名フェードイン
+        setTimeout(() => company.classList.add("show"), 1000);
+
+        // h2 スライドイン
+        setTimeout(() => texts[0].classList.add("show"), 1500);
+
+        // p スライドイン
+        setTimeout(() => texts[1].classList.add("show"), 1800);
       });
 
       const hamburger = document.querySelector(".hamburger");

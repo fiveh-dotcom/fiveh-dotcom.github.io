@@ -127,7 +127,7 @@ body {
   text-align: center;
 
   opacity: 0; /* 初期は透明 */
-  transition: opacity 1s ease;
+  transition: opacity 1.5s ease;
 }
 
 /* 表示後 */
@@ -166,9 +166,44 @@ body {
   margin-bottom: 20px;
 }
 
+.hero-logo {
+  opacity: 0;
+  transform: translateY(-10px); /* 軽く上からフェードイン */
+  transition:
+    opacity 1s ease,
+    transform 1s ease;
+}
+
+.hero-logo.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .hero-company-name {
   color: white;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transition:
+    opacity 1s ease,
+    transform 1s ease;
+}
+
+.hero-company-name.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.hero-text {
+  opacity: 0;
+  transform: translateX(30px); /* 右からスタート */
+  transition:
+    opacity 1s ease,
+    transform 1s ease;
+}
+
+.hero-text.show {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 @media (max-width: 768px) {

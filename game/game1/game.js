@@ -105,7 +105,7 @@ function drawGrid() {
     for (let x = 0; x < cols; x++) {
       const color = grid[y][x];
       if (color) {
-        drawRoundedRect(x * tileSize, y * tileSize, tileSize - 2, tileSize - 2, 6, color);
+        drawRoundedRect(x * tileSize, y * tileSize, tileSize - 0.5, tileSize - 0.5, 6, color);
       }
     }
   }

@@ -134,6 +134,7 @@ function canMove(dx, dy, shape = currentPiece.shape) {
 }
 
 function lockPiece() {
+  // ブロックをグリッドに固定
   currentPiece.shape.forEach((row, dy) => {
     row.forEach((val, dx) => {
       if (val) {
@@ -143,7 +144,13 @@ function lockPiece() {
       }
     });
   });
+
   clearLines();
+
+  // 固定中は操作できないようにする
+  currentPiece = null;
+
+  // 次のブロックを生成
   newPiece();
   drawNextBlocks();
 }
@@ -188,7 +195,9 @@ canvas.addEventListener("touchstart", (e) => {
 canvas.addEventListener(
   "touchmove",
   (e) => {
-    e.preventDefault(); // スクロール防止
+    e.preventDefault();
+    if (!currentPiece) return; // ← ブロック固定中は動かせない
+
     const t = e.touches[0];
     const dx = t.clientX - touchPrevX;
     const dy = t.clientY - touchPrevY;

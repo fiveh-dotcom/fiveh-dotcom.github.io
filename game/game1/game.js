@@ -80,6 +80,8 @@ function resizeCanvas() {
   // 内部解像度をCSSに合わせる
   canvas.width = canvas.clientWidth;
   canvas.height = tileSize * rows;
+
+  return tileSize;
 }
 
 function drawGrid() {

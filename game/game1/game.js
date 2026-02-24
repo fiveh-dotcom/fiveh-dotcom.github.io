@@ -76,16 +76,10 @@ function getTileSize() {
 }
 
 function resizeCanvas() {
-  const dpr = window.devicePixelRatio || 1;
-  const tileSize = canvas.clientWidth / cols;
-
-  canvas.width = canvas.clientWidth * dpr;
-  canvas.height = tileSize * rows * dpr;
-
-  ctx.resetTransform(); // 以前の scale をリセット
-  ctx.scale(dpr, dpr); // 描画をCSSサイズに合わせる
-
-  return tileSize;
+  const tileSize = getTileSize();
+  // 内部解像度をCSSに合わせる
+  canvas.width = canvas.clientWidth;
+  canvas.height = tileSize * rows;
 }
 
 function drawGrid() {

@@ -76,10 +76,15 @@ function getTileSize() {
 }
 
 function resizeCanvas() {
-  const tileSize = getTileSize();
-  // 内部解像度をCSSに合わせる
-  canvas.width = canvas.clientWidth;
-  canvas.height = tileSize * rows;
+  const dpr = window.devicePixelRatio || 1;
+  const tileSize = canvas.clientWidth / cols;
+
+  canvas.width = canvas.clientWidth * dpr;
+  canvas.height = tileSize * rows * dpr;
+
+  ctx.resetTransform(); // 以前の scale をリセット
+  ctx.scale(dpr, dpr); // 描画をCSSサイズに合わせる
+
   return tileSize;
 }
 
@@ -93,14 +98,14 @@ function drawGrid() {
   ctx.lineWidth = 0.2;
   for (let x = 0; x <= cols; x++) {
     ctx.beginPath();
-    ctx.moveTo(x * tileSize, 0);
-    ctx.lineTo(x * tileSize, canvas.height);
+    ctx.moveTo(x * tileSize + 0.5, 0);
+    ctx.lineTo(x * tileSize + 0.5, canvas.height);
     ctx.stroke();
   }
   for (let y = 0; y <= rows; y++) {
     ctx.beginPath();
-    ctx.moveTo(0, y * tileSize);
-    ctx.lineTo(canvas.width, y * tileSize);
+    ctx.moveTo(0, y * tileSize + 0.5);
+    ctx.lineTo(canvas.width, y * tileSize + 0.5);
     ctx.stroke();
   }
 

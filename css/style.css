@@ -246,7 +246,7 @@ body {
   box-sizing: border-box; /* paddingを幅に含める */
 }
 
-#services h2 {
+#services h1 {
   text-align: center;
   font-size: 28px;
   margin-bottom: 20px;
@@ -447,6 +447,12 @@ body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
+#about h1 {
+  font-size: 28px;
+  margin-bottom: 20px;
+  color: #333;
+}
+
 /* =====================
    よくあるご質問
 ===================== */
@@ -492,9 +498,10 @@ body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
-#contact iframe {
-  width: 100%;
-  border: none;
+#contact h1 {
+  font-size: 28px;
+  margin-bottom: 20px;
+  color: #333;
 }
 
 .contact-btn {
@@ -512,6 +519,33 @@ body {
   background-color: #0055aa;
 }
 
+/* =====================
+   プライバシーポリシー
+===================== */
+#privacy {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 20px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+#privacy h1 {
+  font-size: 28px;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+#privacy h2 {
+  font-size: 20px;
+  margin-top: 30px;
+  margin-bottom: 10px;
+  color: #003366;
+  border-left: 4px solid #003366;
+  padding-left: 10px;
+}
+
 /* フッター */
 footer {
   background-color: #004080;
@@ -520,4 +554,16 @@ footer {
   padding: 15px 10px;
   font-size: 0.9em;
   margin-top: 40px;
+}
+
+footer a {
+  color: white;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.4);
+  transition: 0.3s;
+}
+
+footer a:hover {
+  color: #ffd700;
+  text-decoration-color: #ffd700;
 }

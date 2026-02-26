@@ -4,7 +4,7 @@ const details = document.querySelectorAll(".service-detail");
 
 let currentIndex = 0;
 let autoSlideInterval;
-const intervalTime = 10000; // 10秒
+const intervalTime = 12000; // 12秒
 
 // 初期表示
 details[currentIndex].classList.add("active");

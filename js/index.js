@@ -32,16 +32,24 @@ window.addEventListener("load", () => {
 
   let clickCount = 0;
   let timer = null;
+  const limitTime = 1000; // 1秒
 
   // ロゴ5回クリック
   logo.addEventListener("click", () => {
-    clickCount++;
+    // 最初のクリック時だけタイマー開始
+    if (clickCount === 0) {
+      timer = setTimeout(() => {
+        clickCount = 0; // 時間切れでリセット
+      }, limitTime);
+    }
 
-    clearTimeout(timer);
-    timer = setTimeout(() => (clickCount = 0), 3000);
+    clickCount++;
 
     if (clickCount >= 5) {
       menu.style.display = "block";
+
+      // 成功したらリセット
+      clearTimeout(timer);
       clickCount = 0;
     }
   });

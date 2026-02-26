@@ -32,7 +32,7 @@ window.addEventListener("load", () => {
 
   let clickCount = 0;
   let timer = null;
-  const limitTime = 1000; // 1秒
+  const limitTime = 3000; // 3秒
 
   // ロゴ5回クリック
   logo.addEventListener("click", () => {

@@ -300,9 +300,19 @@ body {
 }
 
 .service-icon {
-  font-size: 26px;
   width: 32px;
-  text-align: center;
+  height: 32px;
+
+  display: flex;
+  align-items: center; /* 縦中央 */
+  justify-content: center; /* 横中央 */
+}
+
+.service-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block; /* 余計な隙間防止 */
+  fill: #003366;
 }
 
 .service-card h3 {

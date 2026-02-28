@@ -340,45 +340,38 @@ body {
   top: 50%;
   left: 0;
   text-align: center;
-  opacity: 0;
-  transform: translateY(-50%);
-  transition:
-    transform 0.6s ease,
-    opacity 0.6s ease;
+
+  /* 最初は右外に置いておく */
+  transform: translateY(-50%) translateX(100%);
+
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .service-detail.active {
-  opacity: 1;
   transform: translateY(-50%) translateX(0);
   z-index: 2;
 }
 
 /* 次へ移動（左へ消える） */
 .service-detail.exit-left {
-  opacity: 0;
   transform: translateY(-50%) translateX(-100%);
   z-index: 1;
 }
 
 /* 前へ移動（右へ消える） */
 .service-detail.exit-right {
-  opacity: 0;
   transform: translateY(-50%) translateX(100%);
   z-index: 1;
 }
 
-/* 右から入ってくる */
-.service-detail.enter-right {
-  opacity: 1;
-  transform: translateY(-50%) translateX(0);
-  z-index: 2;
+/* 左から入るための初期位置 */
+.service-detail.enter-left {
+  transform: translateY(-50%) translateX(-100%);
 }
 
-/* 左から入ってくる */
-.service-detail.enter-left {
-  opacity: 1;
-  transform: translateY(-50%) translateX(0);
-  z-index: 2;
+/* 右から入るための初期位置 */
+.service-detail.enter-right {
+  transform: translateY(-50%) translateX(100%);
 }
 
 .service-detail p {

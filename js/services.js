@@ -11,43 +11,41 @@ details[currentIndex].classList.add("active");
 cards[currentIndex].classList.add("active");
 indicators[currentIndex].classList.add("active");
 
-function showDetail(index) {
+function showDetail(index, direction = "next") {
   if (index === currentIndex) return;
 
   const current = details[currentIndex];
   const next = details[index];
+  const isNext = direction === "next";
 
-  const isNext = index > currentIndex || (currentIndex === details.length - 1 && index === 0);
+  // next の初期位置を確定
+  next.classList.remove("active", "exit-left", "exit-right");
 
-  // 現在のスライドを消す方向
-  current.classList.remove("active");
-  current.classList.add(isNext ? "exit-left" : "exit-right");
-
-  // 次のスライドの初期位置を作る
-  next.classList.add("active");
+  next.style.transition = "none";
   next.style.transform = isNext
     ? "translateY(-50%) translateX(100%)"
     : "translateY(-50%) translateX(-100%)";
 
-  // 少し遅らせて中央へ移動（アニメ発火）
-  setTimeout(() => {
-    next.style.transform = "translateY(-50%) translateX(0)";
-  }, 10);
+  next.offsetHeight; // 再描画
 
-  // クラス整理
-  setTimeout(() => {
-    current.classList.remove("exit-left", "exit-right");
-  }, 600);
+  next.style.transition = ""; // transition復活
 
-  // カード更新
+  // current を退場
+  current.classList.remove("active");
+  current.classList.add(isNext ? "exit-left" : "exit-right");
+
+  // next を中央へ
+  next.classList.add("active");
+  next.style.transform = "";
+
+  currentIndex = index;
+
+  // UI更新
   cards.forEach((c) => c.classList.remove("active"));
   cards[index].classList.add("active");
 
-  // インジケーター更新
   indicators.forEach((i) => i.classList.remove("active"));
   indicators[index].classList.add("active");
-
-  currentIndex = index;
 }
 
 // 自動切替
@@ -60,10 +58,19 @@ function startAutoSlide() {
 
 startAutoSlide();
 
+function getDirection(index) {
+  const total = details.length;
+
+  const forwardDistance = (index - currentIndex + total) % total;
+  const backwardDistance = (currentIndex - index + total) % total;
+
+  return forwardDistance <= backwardDistance ? "next" : "prev";
+}
+
 // カードクリックで切替＋タイマーリセット
 cards.forEach((c, i) => {
   c.addEventListener("click", () => {
-    showDetail(i);
+    showDetail(i, getDirection(i));
     clearInterval(autoSlideInterval);
     startAutoSlide();
   });
@@ -91,12 +98,12 @@ detailsWrapper.addEventListener("touchend", (e) => {
     if (diffX < 0) {
       // 左スワイプ → 次へ
       let nextIndex = (currentIndex + 1) % details.length;
-      showDetail(nextIndex);
+      showDetail(nextIndex, "next");
     } else {
       // 右スワイプ → 前へ
       let prevIndex = currentIndex - 1;
       if (prevIndex < 0) prevIndex = details.length - 1;
-      showDetail(prevIndex);
+      showDetail(prevIndex, "prev");
     }
 
     resetAutoSlide();
@@ -112,7 +119,7 @@ function resetAutoSlide() {
 // インジケータークリックで切替＋タイマーリセット
 indicators.forEach((i, idx) => {
   i.addEventListener("click", () => {
-    showDetail(idx);
+    showDetail(idx, getDirection(idx));
     clearInterval(autoSlideInterval);
     startAutoSlide();
   });

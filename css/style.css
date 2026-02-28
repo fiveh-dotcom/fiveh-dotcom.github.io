@@ -337,12 +337,14 @@ body {
 .service-detail {
   position: absolute;
   width: 100%;
-  opacity: 0;
-  transform: translateY(-50%) translateX(100%);
-  transition: all 0.6s ease;
   top: 50%;
   left: 0;
   text-align: center;
+  opacity: 0;
+  transform: translateY(-50%);
+  transition:
+    transform 0.6s ease,
+    opacity 0.6s ease;
 }
 
 .service-detail.active {
@@ -351,10 +353,32 @@ body {
   z-index: 2;
 }
 
-.service-detail.exit {
+/* 次へ移動（左へ消える） */
+.service-detail.exit-left {
   opacity: 0;
   transform: translateY(-50%) translateX(-100%);
   z-index: 1;
+}
+
+/* 前へ移動（右へ消える） */
+.service-detail.exit-right {
+  opacity: 0;
+  transform: translateY(-50%) translateX(100%);
+  z-index: 1;
+}
+
+/* 右から入ってくる */
+.service-detail.enter-right {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+  z-index: 2;
+}
+
+/* 左から入ってくる */
+.service-detail.enter-left {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+  z-index: 2;
 }
 
 .service-detail p {

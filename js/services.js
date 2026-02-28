@@ -17,23 +17,33 @@ function showDetail(index) {
   const current = details[currentIndex];
   const next = details[index];
 
-  // 現在を左へ退出
+  const isNext = index > currentIndex || (currentIndex === details.length - 1 && index === 0);
+
+  // 現在のスライドを消す方向
   current.classList.remove("active");
-  current.classList.add("exit");
+  current.classList.add(isNext ? "exit-left" : "exit-right");
 
-  // 次を準備
+  // 次のスライドの初期位置を作る
   next.classList.add("active");
+  next.style.transform = isNext
+    ? "translateY(-50%) translateX(100%)"
+    : "translateY(-50%) translateX(-100%)";
 
-  // exitクラス削除（アニメ後）
+  // 少し遅らせて中央へ移動（アニメ発火）
   setTimeout(() => {
-    current.classList.remove("exit");
-  }, 600); // CSSの transition 0.6s と timeout を合わせる
+    next.style.transform = "translateY(-50%) translateX(0)";
+  }, 10);
 
-  // カード
+  // クラス整理
+  setTimeout(() => {
+    current.classList.remove("exit-left", "exit-right");
+  }, 600);
+
+  // カード更新
   cards.forEach((c) => c.classList.remove("active"));
   cards[index].classList.add("active");
 
-  // インジケーター
+  // インジケーター更新
   indicators.forEach((i) => i.classList.remove("active"));
   indicators[index].classList.add("active");
 
@@ -60,27 +70,35 @@ cards.forEach((c, i) => {
 });
 
 let startX = 0;
+let startY = 0;
 const detailsWrapper = document.getElementById("details-wrapper");
 
 // --- スワイプ処理 ---
 detailsWrapper.addEventListener("touchstart", (e) => {
   startX = e.touches[0].clientX;
+  startY = e.touches[0].clientY;
 });
 
 detailsWrapper.addEventListener("touchend", (e) => {
   const endX = e.changedTouches[0].clientX;
-  const diff = endX - startX;
+  const endY = e.changedTouches[0].clientY;
 
-  if (diff > 50) {
-    // 右スワイプ → 次のスライド
-    let nextIndex = (currentIndex + 1) % details.length;
-    showDetail(nextIndex);
-    resetAutoSlide();
-  } else if (diff < -50) {
-    // 左スワイプ → 前のスライド
-    let prevIndex = currentIndex - 1;
-    if (prevIndex < 0) prevIndex = details.length - 1;
-    showDetail(prevIndex);
+  const diffX = endX - startX;
+  const diffY = endY - startY;
+
+  // 横移動が縦移動より大きい場合のみ反応（斜め対策）
+  if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+    if (diffX < 0) {
+      // 左スワイプ → 次へ
+      let nextIndex = (currentIndex + 1) % details.length;
+      showDetail(nextIndex);
+    } else {
+      // 右スワイプ → 前へ
+      let prevIndex = currentIndex - 1;
+      if (prevIndex < 0) prevIndex = details.length - 1;
+      showDetail(prevIndex);
+    }
+
     resetAutoSlide();
   }
 });

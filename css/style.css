@@ -282,9 +282,15 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
+/* 
+  スワイプ（タッチ操作）でもカードを浮かせるため
+  active状態にもhover時と同じtransformを適用
+*/
 .service-card.active {
   border: 2px solid #004080;
   background-color: #f0f8ff;
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .service-row {

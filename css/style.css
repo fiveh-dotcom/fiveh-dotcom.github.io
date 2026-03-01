@@ -87,7 +87,7 @@ body {
   background-color: #fff;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 820px) {
   /* メニューは非表示にする */
   .main-nav {
     display: none;
@@ -213,7 +213,7 @@ body {
   transform: translateX(0);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 820px) {
   .hero h1.hero-company-name {
     font-size: 20px;
   }

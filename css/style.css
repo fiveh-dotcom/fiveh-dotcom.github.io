@@ -122,6 +122,7 @@ body {
 /* ヒーローセクション */
 .hero {
   position: relative;
+  overflow: hidden;
   background-color: #001a33; /* ロゴに合う濃い色 */
   background-image: url("../images/background.jpg");
   background-size: cover;

@@ -1,3 +1,9 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 /* 全体設定 */
 body {
   font-family: "Noto Sans JP", sans-serif;
@@ -243,7 +249,6 @@ body {
   max-width: 1200px; /* PC最大幅 */
   margin: 0 auto; /* 中央寄せ */
   padding: 0 15px; /* 左右の余白 */
-  box-sizing: border-box; /* paddingを幅に含める */
 }
 
 #services h1 {

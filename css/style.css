@@ -87,7 +87,7 @@ body {
   background-color: #fff;
 }
 
-@media (max-width: 853px) {
+@media (max-width: 864px) {
   /* メニューは非表示にする */
   .main-nav {
     display: none;
@@ -228,6 +228,12 @@ body {
 
   .hero p {
     font-size: 14px;
+  }
+}
+
+@media (max-width: 360px) {
+  .hero h2 {
+    font-size: 15px;
   }
 }
 

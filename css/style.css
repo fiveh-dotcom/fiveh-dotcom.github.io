@@ -374,6 +374,12 @@ body {
   transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+@media (max-width: 768px) {
+  .service-detail {
+    text-align: left;
+  }
+}
+
 .service-detail.active {
   transform: translateY(-50%) translateX(0);
   z-index: 2;
@@ -402,7 +408,7 @@ body {
 }
 
 .service-detail p {
-  padding: 5px;
+  padding: 10px;
   font-size: 16px;
   line-height: 1.8;
   font-weight: bold;

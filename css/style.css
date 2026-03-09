@@ -150,6 +150,7 @@ body.menu-open {
     position: relative; /* 絶対位置アイコンをa内に */
     padding-left: 40px; /* アイコン分スペース */
     display: block; /* 横並び */
+    font-size: 18px;
   }
 
   /* ホームアイコン */

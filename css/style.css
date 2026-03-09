@@ -50,6 +50,7 @@ body.menu-open {
 .company-name {
   font-size: 20px;
   font-weight: bold;
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {
@@ -320,6 +321,7 @@ body.menu-open {
   align-items: center; /* 縦中央揃え */
   gap: 15px; /* ロゴと文字の間隔 */
   margin-bottom: 20px;
+  white-space: nowrap;
 }
 
 .hero-logo {

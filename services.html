@@ -39,21 +39,33 @@
 
       <nav class="main-nav">
         <ul>
-          <li><a href="index.html">ホーム</a></li>
-          <li><a href="services.html">サービス</a></li>
-          <li><a href="about.html">会社情報</a></li>
-          <li><a href="faq.html">よくあるご質問</a></li>
-          <li><a href="contact.html">お問い合わせ・ご依頼</a></li>
+          <li>
+            <a href="index.html"><span class="home-menu-icon"></span>ホーム</a>
+          </li>
+          <li>
+            <a href="services.html"><span class="toolbox-menu-icon"></span>サービス</a>
+          </li>
+          <li>
+            <a href="about.html"><span class="building-menu-icon"></span>会社情報</a>
+          </li>
+          <li>
+            <a href="faq.html"><span class="question-menu-icon"></span>よくあるご質問</a>
+          </li>
+          <li>
+            <a href="contact.html"><span class="mail-menu-icon"></span>お問い合わせ・ご依頼</a>
+          </li>
         </ul>
       </nav>
 
       <!-- ハンバーガーボタン -->
-      <div class="hamburger">
+      <div class="hamburger" aria-label="メインメニューを開閉" aria-expanded="false">
         <span></span>
         <span></span>
         <span></span>
       </div>
     </header>
+
+    <div class="menu-overlay"></div>
 
     <div class="page-wrapper">
       <!-- サービスカード -->

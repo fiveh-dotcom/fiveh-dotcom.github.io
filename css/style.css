@@ -59,6 +59,12 @@ body.menu-open {
   }
 }
 
+@media (max-width: 330px) {
+  .company-name {
+    font-size: 16px;
+  }
+}
+
 /* ナビゲーション */
 .main-nav ul {
   display: flex;

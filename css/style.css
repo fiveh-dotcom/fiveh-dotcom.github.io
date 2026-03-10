@@ -566,6 +566,12 @@ body.menu-open {
   font-weight: bold;
 }
 
+@media (max-width: 330px) {
+  .service-detail p {
+    font-size: 14px;
+  }
+}
+
 .indicator-container {
   text-align: center;
   margin-top: 10px;

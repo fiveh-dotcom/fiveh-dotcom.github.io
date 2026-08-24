@@ -393,31 +393,27 @@ function clampTouchToCanvas(touch) {
   };
 }
 
-window.addEventListener(
-  "touchmove",
-  (e) => {
-    e.preventDefault(); // スクロール防止
-    if (!isTouching || !currentBlock) return;
+window.addEventListener("touchmove", (e) => {
+  e.preventDefault(); // スクロール防止
+  if (!isTouching || !currentBlock) return;
 
-    const t = clampTouchToCanvas(e.touches[0]);
-    const dx = t.x - touchPrevX;
-    const dy = t.y - touchPrevY;
+  const t = clampTouchToCanvas(e.touches[0]);
+  const dx = t.x - touchPrevX;
+  const dy = t.y - touchPrevY;
 
-    // 横移動（1マスずつブロックを追従）
-    if (Math.abs(dx) > blockSize / 2) {
-      if (dx > 0 && canMove(currentBlock.x + 1, currentBlock.y)) currentBlock.x++;
-      else if (dx < 0 && canMove(currentBlock.x - 1, currentBlock.y)) currentBlock.x--;
-      touchPrevX = t.x; // 移動量リセット
-    }
+  // 横移動（1マスずつブロックを追従）
+  if (Math.abs(dx) > blockSize / 2) {
+    if (dx > 0 && canMove(currentBlock.x + 1, currentBlock.y)) currentBlock.x++;
+    else if (dx < 0 && canMove(currentBlock.x - 1, currentBlock.y)) currentBlock.x--;
+    touchPrevX = t.x; // 移動量リセット
+  }
 
-    // 下方向は1段ずつ落下
-    if (dy > blockSize / 2) {
-      drop();
-      touchPrevY = t.y;
-    }
-  },
-  { passive: false },
-);
+  // 下方向は1段ずつ落下
+  if (dy > blockSize / 2) {
+    drop();
+    touchPrevY = t.y;
+  }
+});
 
 window.addEventListener("touchend", (e) => {
   if (!isTouching) return;

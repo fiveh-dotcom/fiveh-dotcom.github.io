@@ -7,9 +7,6 @@ const rows = 20;
 const cols = 10;
 let blockSize = canvas.width / cols;
 
-resizeCanvases();
-window.addEventListener("resize", resizeCanvases);
-
 function resizeCanvases() {
   const gameWrapper = document.getElementById("gameWrapper");
 
@@ -27,6 +24,11 @@ function resizeCanvases() {
 
   nextCanvas.width = Math.floor(nextWidth);
   nextCanvas.height = Math.floor((nextWidth * 3) / 2);
+
+  // Canvasのサイズ変更で描画内容が消えるため、再描画する
+  if (nextPieces.length > 0) {
+    drawNextBlocks();
+  }
 }
 
 let grid = Array.from({ length: rows }, () => Array(cols).fill(null));
@@ -75,6 +77,10 @@ let currentPiece = null;
 let pieceX = 0,
   pieceY = 0;
 let nextPieces = [];
+
+// 初期サイズ設定
+resizeCanvases();
+window.addEventListener("resize", resizeCanvases);
 
 function generateNextPieces() {
   while (nextPieces.length < 3) {

@@ -7,6 +7,7 @@
     <title>ブロックプレイスパズル</title>
     <style>
       body {
+        padding: 0 10px;
         margin: 0;
         font-family: sans-serif;
         display: flex;
@@ -15,31 +16,50 @@
         background: #222;
         color: #fff;
       }
+
       .ui-bar {
-        width: 400px;
+        width: 100%;
+        max-width: 400px;
         display: flex;
         justify-content: flex-end;
         align-items: center;
         margin-top: 10px;
         margin-bottom: 5px;
+        padding-right: 5px;
+        box-sizing: border-box;
       }
+
       #score {
         font-size: 20px;
       }
+
       #gameCanvas {
+        width: 100%;
+        max-width: 400px;
+        aspect-ratio: 1 / 1;
         background: #111;
-        display: block;
         border: 2px solid #fff;
+        display: block;
+        touch-action: none;
       }
+
       #nextBlocksContainer {
+        width: 100%;
+        max-width: 400px;
         display: flex;
         gap: 10px;
         margin-top: 10px;
       }
+
       .nextBlockCanvas {
+        flex: 1;
+        min-width: 0;
+        aspect-ratio: 1 / 1;
         background: #111;
         border: 2px solid #fff;
+        box-sizing: border-box;
       }
+
       #startBtn {
         padding: 10px 20px;
         font-size: 18px;
@@ -55,12 +75,12 @@
       <div id="score">Score: 0</div>
     </div>
 
-    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <canvas id="gameCanvas"></canvas>
 
     <div id="nextBlocksContainer">
-      <canvas class="nextBlockCanvas" width="120" height="120"></canvas>
-      <canvas class="nextBlockCanvas" width="120" height="120"></canvas>
-      <canvas class="nextBlockCanvas" width="120" height="120"></canvas>
+      <canvas class="nextBlockCanvas"></canvas>
+      <canvas class="nextBlockCanvas"></canvas>
+      <canvas class="nextBlockCanvas"></canvas>
     </div>
 
     <button id="startBtn">ゲームスタート</button>

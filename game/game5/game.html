@@ -7,6 +7,7 @@
     <title>マージタイル</title>
     <style>
       body {
+        padding: 0 10px;
         margin: 0;
         font-family: sans-serif;
         display: flex;
@@ -15,67 +16,80 @@
         background: #222;
         color: #fff;
       }
+
       .ui-bar {
         width: 100%;
-        max-width: 300px; /* gameCanvas 幅に合わせる */
+        height: 30px;
         display: flex;
         justify-content: flex-end;
         align-items: center;
-        margin-top: 10px;
-        margin-bottom: 5px;
         padding-right: 5px;
         box-sizing: border-box;
       }
+
       #score {
         font-size: 20px;
       }
 
       #gameWrapper {
+        width: 100%;
+        max-width: 400px;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 10px;
-        width: 100%;
-        position: relative;
+        box-sizing: border-box;
       }
 
       #gameContainer {
-        position: relative;
         width: 100%;
         display: flex;
-        justify-content: center; /* gameCanvas を左右中央 */
+        justify-content: center;
         align-items: flex-start;
+        gap: 10px;
+        box-sizing: border-box;
       }
 
       #gameCanvasWrapper {
-        position: relative;
+        flex: 1;
+        min-width: 0;
       }
 
       #gameCanvas {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1 / 2;
         background: #111;
         border: 2px solid #fff;
         display: block;
+        box-sizing: border-box;
       }
 
       #sidebar {
-        position: absolute;
-        left: calc(50% + 150px + 20px); /* canvas幅300px/2 + margin20px */
-        top: 0;
+        width: 25%;
+        flex-shrink: 0;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 20px; /* ブロック間の隙間 */
+      }
+
+      .sidebar-spacer {
+        height: 30px;
       }
 
       #nextBlocksCanvas {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 2 / 3;
         background: #111;
         border: 2px solid #fff;
         display: block;
+        box-sizing: border-box;
       }
 
       #startBtn {
         padding: 10px 20px;
         font-size: 18px;
+        margin: 15px;
         cursor: pointer;
       }
     </style>
@@ -83,22 +97,24 @@
   <body>
     <h1>マージタイル</h1>
 
-    <!-- スコア表示 -->
-    <div class="ui-bar">
-      <div id="score">Score: 0</div>
-    </div>
-
     <div id="gameWrapper">
       <div id="gameContainer">
         <div id="gameCanvasWrapper">
-          <canvas id="gameCanvas" width="300" height="600"></canvas>
+          <div class="ui-bar">
+            <div id="score">Score: 0</div>
+          </div>
+
+          <canvas id="gameCanvas"></canvas>
         </div>
+
         <div id="sidebar">
-          <canvas id="nextBlocksCanvas" width="120" height="180"></canvas>
+          <div class="sidebar-spacer"></div>
+          <canvas id="nextBlocksCanvas"></canvas>
         </div>
       </div>
-      <button id="startBtn">ゲームスタート</button>
     </div>
+
+    <button id="startBtn">ゲームスタート</button>
 
     <script src="game.js"></script>
   </body>

@@ -7,6 +7,7 @@
     <title>ブロック崩し</title>
     <style>
       body {
+        padding: 0 10px;
         margin: 0;
         font-family: sans-serif;
         display: flex;
@@ -28,28 +29,24 @@
         box-sizing: border-box;
       }
 
-      #gameWrapper {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        width: 100%;
+      #score {
+        font-size: 20px;
       }
 
       #gameCanvas {
+        width: 100%;
+        max-width: 400px;
+        aspect-ratio: 2 / 3;
         background: #111;
         border: 2px solid #fff;
         display: block;
         touch-action: none;
       }
 
-      #score {
-        font-size: 20px;
-      }
-
       #startBtn {
         padding: 10px 20px;
         font-size: 18px;
+        margin: 15px;
         cursor: pointer;
       }
     </style>
@@ -57,10 +54,9 @@
   <body>
     <h1>ブロック崩し</h1>
     <div class="ui-bar"><div id="score">Score: 0</div></div>
-    <div id="gameWrapper">
-      <canvas id="gameCanvas" width="400" height="600"></canvas>
-      <button id="startBtn">ゲームスタート</button>
-    </div>
+    <canvas id="gameCanvas"></canvas>
+    <button id="startBtn">ゲームスタート</button>
+
     <script src="game.js"></script>
   </body>
 </html>

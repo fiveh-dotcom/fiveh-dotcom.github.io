@@ -6,7 +6,10 @@ const scoreElem = document.getElementById("score");
 
 const rows = 10;
 const cols = 5;
-const blockSize = canvas.width / cols;
+let blockSize = 0;
+
+resizeCanvases();
+window.addEventListener("resize", resizeCanvases);
 
 let grid = [];
 let score = 0;
@@ -32,6 +35,24 @@ const colors = {
   2048: "#00ffff",
   4096: "#0011ff",
 };
+
+function resizeCanvases() {
+  const gameWrapper = document.getElementById("gameWrapper");
+
+  const wrapperWidth = Math.min(gameWrapper.clientWidth, 400);
+
+  const gap = 10;
+  const nextWidth = wrapperWidth * 0.22;
+  const gameWidth = wrapperWidth - nextWidth - gap;
+
+  canvas.width = Math.floor(gameWidth);
+  canvas.height = canvas.width * 2;
+
+  blockSize = canvas.width / cols;
+
+  nextCanvas.width = Math.floor(nextWidth);
+  nextCanvas.height = Math.floor((nextWidth * 3) / 2);
+}
 
 // 数字省略表示
 function formatNumber(n) {
@@ -82,8 +103,7 @@ function newBlock() {
 // 描画
 function drawGrid() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let y = 0; y < rows; y++)
-    for (let x = 0; x < cols; x++) if (grid[y][x]) drawCell(x, y, grid[y][x]);
+  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) if (grid[y][x]) drawCell(x, y, grid[y][x]);
 
   if (currentBlock) drawCell(currentBlock.x, currentBlock.y, currentBlock.value);
   drawNext();
@@ -132,8 +152,11 @@ function getColor(value) {
 
 function drawNext() {
   nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+
   const gap = 5; // ブロック間の余白
-  const size = blockSize - 2; // ゲーム画面と同じサイズ
+
+  // Next用のタイルサイズ
+  const size = Math.min(nextCanvas.width - 4, (nextCanvas.height - gap * 2) / 3);
 
   nextBlocks.forEach((val, i) => {
     const x = (nextCanvas.width - size) / 2;
@@ -148,7 +171,9 @@ function drawNext() {
     nextCtx.font = `bold ${Math.floor(size * 0.45)}px 'Poppins', sans-serif`;
     nextCtx.textAlign = "center";
     nextCtx.textBaseline = "middle";
+
     const text = formatNumber(val);
+
     drawCenteredText(nextCtx, text, x + size / 2, y + size / 2, size * 0.8, size * 0.5);
 
     // 1024以上はキラキラエフェクト
@@ -168,21 +193,64 @@ function canMove(x, y) {
 // 落下
 function drop() {
   if (!currentBlock || mergeLock) return;
-  if (canMove(currentBlock.x, currentBlock.y + 1)) {
+
+  const nextX = currentBlock.x;
+  const nextY = currentBlock.y + 1;
+
+  // 下に進める
+  if (canMove(nextX, nextY)) {
     currentBlock.y++;
-  } else {
-    placeBlock();
+    return;
+  }
+
+  // 下のタイルと合体できる場合
+  if (nextY < rows && grid[nextY][nextX] === currentBlock.value) {
+    grid[nextY][nextX] *= 2;
+
+    score += grid[nextY][nextX];
+
+    if (grid[nextY][nextX] > highestUnlockedNumber) {
+      highestUnlockedNumber = grid[nextY][nextX];
+
+      if (!availableNumbers.includes(grid[nextY][nextX])) {
+        availableNumbers.push(grid[nextY][nextX]);
+      }
+    }
+
+    currentBlock = null;
+
     mergeLock = true;
-    mergeAndFall(currentBlock.x, currentBlock.y).then(() => {
+
+    mergeAndFall(nextX, nextY).then(() => {
       mergeLock = false;
-      currentBlock = null;
+
       newBlock();
+
       if (!canMove(currentBlock.x, currentBlock.y)) {
         alert("ゲームオーバー！スコア: " + score);
         gameStarted = false;
       }
     });
+
+    return;
   }
+
+  // 合体できない場合は現在位置に置く
+  placeBlock();
+
+  mergeLock = true;
+
+  mergeAndFall(currentBlock.x, currentBlock.y).then(() => {
+    mergeLock = false;
+
+    currentBlock = null;
+    newBlock();
+
+    if (!canMove(currentBlock.x, currentBlock.y)) {
+      alert("ゲームオーバー！スコア: " + score);
+      gameStarted = false;
+    }
+  });
 }
 
 function placeBlock() {
@@ -190,51 +258,75 @@ function placeBlock() {
 }
 
 // 複数合体 + 下まで落下（アニメーション）
-async function mergeAndFall(x, y) {
-  let changed;
-  do {
-    changed = false;
-    // 複数合体
-    for (let row = rows - 1; row >= 0; row--) {
-      for (let col = 0; col < cols; col++) {
+async function mergeAndFall() {
+  while (true) {
+    let merged = false;
+
+    // 合体できる組み合わせを1つ探す
+    for (let row = rows - 1; row >= 0 && !merged; row--) {
+      for (let col = 0; col < cols && !merged; col++) {
         if (!grid[row][col]) continue;
+
         const val = grid[row][col];
+
         const dirs = [
-          [0, 1],
-          [1, 0],
-          [0, -1],
-          [-1, 0],
+          [0, 1], // 下
+          [1, 0], // 右
+          [0, -1], // 上
+          [-1, 0], // 左
         ];
-        for (let [dx, dy] of dirs) {
-          const nx = col + dx,
-            ny = row + dy;
+
+        for (const [dx, dy] of dirs) {
+          const nx = col + dx;
+          const ny = row + dy;
+
           if (nx >= 0 && nx < cols && ny >= 0 && ny < rows && grid[ny][nx] === val) {
+            // 合体アニメーション
             await animateMerge(col, row, nx, ny);
-            grid[row][col] *= 2;
+
+            // 合体
+            grid[row][col] = val * 2;
+            grid[ny][nx] = null;
+
             score += grid[row][col];
+
+            // 新しい数字を解禁
             if (grid[row][col] > highestUnlockedNumber) {
               highestUnlockedNumber = grid[row][col];
-              if (!availableNumbers.includes(grid[row][col])) availableNumbers.push(grid[row][col]);
+
+              if (!availableNumbers.includes(grid[row][col])) {
+                availableNumbers.push(grid[row][col]);
+              }
             }
-            grid[ny][nx] = null;
-            changed = true;
+
+            merged = true;
+            break;
           }
         }
       }
     }
-    // 下まで落下
-    for (let col = 0; col < cols; col++) {
-      for (let row = rows - 2; row >= 0; row--) {
-        if (grid[row][col] && !grid[row + 1][col]) {
-          grid[row + 1][col] = grid[row][col];
-          grid[row][col] = null;
-          changed = true;
+
+    // 合体した場合は、まず盤面を落下させる
+    if (merged) {
+      for (let col = 0; col < cols; col++) {
+        for (let row = rows - 2; row >= 0; row--) {
+          if (grid[row][col] && !grid[row + 1][col]) {
+            grid[row + 1][col] = grid[row][col];
+            grid[row][col] = null;
+          }
         }
       }
+
+      drawGrid();
+      await sleep(50);
+
+      // 最初からもう一度合体を探す
+      continue;
     }
-    drawGrid();
-    await sleep(50);
-  } while (changed);
+
+    // 合体できなくなったら終了
+    break;
+  }
 }
 
 function sleep(ms) {
@@ -274,10 +366,22 @@ let touchPrevY = 0;
 canvas.addEventListener("touchstart", (e) => {
   if (!gameStarted || !currentBlock || mergeLock) return;
 
-  const t = clampTouchToCanvas(e.touches[0]);
-  touchPrevX = t.x;
-  touchPrevY = t.y;
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
 
+  // Canvas内でタッチしたか確認
+  if (
+    touch.clientX < rect.left ||
+    touch.clientX > rect.right ||
+    touch.clientY < rect.top ||
+    touch.clientY > rect.bottom
+  ) {
+    return;
+  }
+
+  // Canvas内なら現在のタイルをつかむ
+  touchPrevX = touch.clientX;
+  touchPrevY = touch.clientY;
   isTouching = true;
 });
 
@@ -289,29 +393,35 @@ function clampTouchToCanvas(touch) {
   };
 }
 
-canvas.addEventListener("touchmove", (e) => {
-  e.preventDefault(); // スクロール防止
-  if (!currentBlock) return;
+window.addEventListener(
+  "touchmove",
+  (e) => {
+    e.preventDefault(); // スクロール防止
+    if (!isTouching || !currentBlock) return;
 
-  const t = clampTouchToCanvas(e.touches[0]);
-  const dx = t.x - touchPrevX;
-  const dy = t.y - touchPrevY;
+    const t = clampTouchToCanvas(e.touches[0]);
+    const dx = t.x - touchPrevX;
+    const dy = t.y - touchPrevY;
 
-  // 横移動（1マスずつブロックを追従）
-  if (Math.abs(dx) > blockSize / 2) {
-    if (dx > 0 && canMove(currentBlock.x + 1, currentBlock.y)) currentBlock.x++;
-    else if (dx < 0 && canMove(currentBlock.x - 1, currentBlock.y)) currentBlock.x--;
-    touchPrevX = t.x; // 移動量リセット
-  }
+    // 横移動（1マスずつブロックを追従）
+    if (Math.abs(dx) > blockSize / 2) {
+      if (dx > 0 && canMove(currentBlock.x + 1, currentBlock.y)) currentBlock.x++;
+      else if (dx < 0 && canMove(currentBlock.x - 1, currentBlock.y)) currentBlock.x--;
+      touchPrevX = t.x; // 移動量リセット
+    }
 
-  // 下方向は1段ずつ落下
-  if (dy > blockSize / 2) {
-    drop();
-    touchPrevY = t.y;
-  }
-});
+    // 下方向は1段ずつ落下
+    if (dy > blockSize / 2) {
+      drop();
+      touchPrevY = t.y;
+    }
+  },
+  { passive: false },
+);
 
-canvas.addEventListener("touchend", (e) => {
+window.addEventListener("touchend", (e) => {
+  if (!isTouching) return;
+
   isTouching = false;
 
   // 上方向スワイプで高速落下

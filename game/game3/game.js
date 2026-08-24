@@ -1,8 +1,11 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-const canvasWidth = canvas.width;
-const canvasHeight = canvas.height;
+const canvasWidth = 400;
+const canvasHeight = 600;
+
+canvas.width = canvasWidth;
+canvas.height = canvasHeight;
 
 let ballRadius = 6;
 let ballX = canvasWidth / 2;
@@ -211,11 +214,7 @@ function draw() {
     if (ball.x + ball.radius > canvasWidth || ball.x - ball.radius < 0) ball.speedX = -ball.speedX;
     if (ball.y - ball.radius < 0) ball.speedY = -ball.speedY;
 
-    if (
-      ball.y + ball.radius > canvasHeight - paddleHeight - 10 &&
-      ball.x > paddleX &&
-      ball.x < paddleX + paddleWidth
-    ) {
+    if (ball.y + ball.radius > canvasHeight - paddleHeight - 10 && ball.x > paddleX && ball.x < paddleX + paddleWidth) {
       ball.speedY = -ball.speedY;
     } else if (ball.y + ball.radius > canvasHeight) {
       // 下に落ちたボールを消す
@@ -256,14 +255,19 @@ document.addEventListener("keyup", (e) => {
 // マウス操作
 canvas.addEventListener("mousedown", (e) => {
   const rect = canvas.getBoundingClientRect();
-  if (e.clientY > canvasHeight - paddleHeight - 10) {
+
+  const scaleY = canvasHeight / rect.height;
+  const mouseY = (e.clientY - rect.top) * scaleY;
+
+  if (mouseY > canvasHeight - paddleHeight - 10) {
     isDragging = true;
   }
 });
 canvas.addEventListener("mousemove", (e) => {
   if (isDragging) {
     const rect = canvas.getBoundingClientRect();
-    paddleX = e.clientX - rect.left - paddleWidth / 2;
+    const scaleX = canvasWidth / rect.width;
+    paddleX = (e.clientX - rect.left) * scaleX - paddleWidth / 2;
     if (paddleX < 0) paddleX = 0;
     if (paddleX + paddleWidth > canvasWidth) paddleX = canvasWidth - paddleWidth;
   }
@@ -274,7 +278,12 @@ canvas.addEventListener("mouseleave", () => (isDragging = false));
 canvas.addEventListener("touchstart", (e) => {
   const rect = canvas.getBoundingClientRect();
   const touch = e.touches[0];
-  if (touch.clientY - rect.top > canvasHeight - paddleHeight - 10) {
+
+  const scaleY = canvasHeight / rect.height;
+
+  const touchY = (touch.clientY - rect.top) * scaleY;
+
+  if (touchY > canvasHeight - paddleHeight - 10) {
     isDragging = true;
   }
 });
@@ -286,7 +295,8 @@ canvas.addEventListener(
       e.preventDefault(); // スクロール防止
       const rect = canvas.getBoundingClientRect();
       const touch = e.touches[0];
-      paddleX = touch.clientX - rect.left - paddleWidth / 2;
+      const scaleX = canvasWidth / rect.width;
+      paddleX = (touch.clientX - rect.left) * scaleX - paddleWidth / 2;
       if (paddleX < 0) paddleX = 0;
       if (paddleX + paddleWidth > canvasWidth) paddleX = canvasWidth - paddleWidth;
     }

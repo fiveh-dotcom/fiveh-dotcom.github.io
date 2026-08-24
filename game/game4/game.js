@@ -5,9 +5,31 @@ const nextCanvases = document.querySelectorAll(".nextBlockCanvas");
 
 const rows = 10;
 const cols = 10;
-const tileSize = Math.min(canvas.width / cols, canvas.height / rows);
+let tileSize;
 
-const TOUCH_DRAG_OFFSET = tileSize * 2.1; // 指より上にずらす量
+let touchDragOffset; // 指より上にずらす量
+
+/* =========================
+   Canvasサイズ調整
+========================= */
+
+function resizeCanvases() {
+  const gameRect = canvas.getBoundingClientRect();
+
+  canvas.width = gameRect.width;
+  canvas.height = gameRect.height;
+
+  tileSize = Math.min(canvas.width / cols, canvas.height / rows);
+
+  touchDragOffset = tileSize * 1.75;
+
+  nextCanvases.forEach((nextCanvas) => {
+    const rect = nextCanvas.getBoundingClientRect();
+
+    nextCanvas.width = rect.width;
+    nextCanvas.height = rect.height;
+  });
+}
 
 /* =========================
    Overlay（完全最前面）
@@ -28,8 +50,11 @@ overlayCanvas.style.zIndex = "2147483647";
 document.body.appendChild(overlayCanvas);
 
 window.addEventListener("resize", () => {
-  overlayCanvas.width = window.innerWidth;
-  overlayCanvas.height = window.innerHeight;
+  resizeCanvases();
+
+  drawNextBlocks();
+  drawGrid();
+  syncOverlay();
 });
 
 /* ========================= */
@@ -291,14 +316,7 @@ function generateBlocks() {
 ========================= */
 
 function drawBombTile(ctxRef, x, y, size) {
-  const grad = ctxRef.createRadialGradient(
-    x + size / 2,
-    y + size / 2,
-    2,
-    x + size / 2,
-    y + size / 2,
-    size,
-  );
+  const grad = ctxRef.createRadialGradient(x + size / 2, y + size / 2, 2, x + size / 2, y + size / 2, size);
 
   grad.addColorStop(0, "white");
   grad.addColorStop(0.3, "yellow");
@@ -349,8 +367,8 @@ function drawGhost() {
 
   const rect = canvas.getBoundingClientRect();
 
-  const gx = Math.round((draggingBlock.x - rect.left) / tileSize);
-  const gy = Math.round((draggingBlock.y - rect.top) / tileSize);
+  const gx = Math.floor((draggingBlock.x - rect.left) / tileSize);
+  const gy = Math.floor((draggingBlock.y - rect.top) / tileSize);
 
   const ok = canPlace(block, gx, gy);
 
@@ -537,7 +555,7 @@ function startDrag(e, index) {
   }
 
   const isTouch = e.touches && e.touches.length > 0;
-  const offsetY = isTouch ? TOUCH_DRAG_OFFSET : 0;
+  const offsetY = isTouch ? touchDragOffset : 0;
 
   draggingBlock = {
     block: JSON.parse(JSON.stringify(block)),
@@ -569,7 +587,7 @@ function drag(e) {
   const isTouch = e.touches && e.touches.length > 0;
 
   if (isTouch) {
-    const offsetY = TOUCH_DRAG_OFFSET; // 指から上にずらす量
+    const offsetY = touchDragOffset; // 指から上にずらす量
     draggingBlock.x = clientX;
     draggingBlock.y = clientY - offsetY;
   } else {
@@ -691,5 +709,6 @@ document.getElementById("startBtn").addEventListener("click", () => {
 /* ========================= */
 
 initGrid();
+resizeCanvases();
 drawGrid();
 syncOverlay();

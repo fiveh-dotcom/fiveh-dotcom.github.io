@@ -7,6 +7,7 @@
     <title>カラータイル</title>
     <style>
       body {
+        padding: 0 10px;
         margin: 0;
         font-family: sans-serif;
         display: flex;
@@ -17,12 +18,15 @@
       }
 
       .ui-bar {
-        width: 400px;
+        width: 100%;
+        max-width: 400px;
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-top: 10px;
         margin-bottom: 5px;
+        padding-right: 5px;
+        box-sizing: border-box;
       }
 
       #timeBarContainer {
@@ -43,9 +47,13 @@
       }
 
       #gameCanvas {
+        width: 100%;
+        max-width: 400px;
+        aspect-ratio: 2 / 3;
         background: #111;
-        display: block;
         border: 2px solid #fff;
+        display: block;
+        touch-action: none;
       }
 
       #startBtn {
@@ -58,15 +66,13 @@
   </head>
   <body>
     <h1>カラータイル</h1>
-
     <div class="ui-bar">
       <div id="timeBarContainer">
         <div id="timeBar"></div>
       </div>
       <div id="score">Score: 0</div>
     </div>
-
-    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    <canvas id="gameCanvas"></canvas>
     <button id="startBtn">ゲームスタート</button>
 
     <script src="game.js"></script>

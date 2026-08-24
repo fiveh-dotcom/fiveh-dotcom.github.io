@@ -5,7 +5,29 @@ const nextCtx = nextCanvas.getContext("2d");
 
 const rows = 20;
 const cols = 10;
-const blockSize = canvas.width / cols;
+let blockSize = canvas.width / cols;
+
+resizeCanvases();
+window.addEventListener("resize", resizeCanvases);
+
+function resizeCanvases() {
+  const gameWrapper = document.getElementById("gameWrapper");
+
+  const wrapperWidth = Math.min(gameWrapper.clientWidth, 400);
+
+  const gap = 10;
+
+  const nextWidth = wrapperWidth * 0.22;
+  const gameWidth = wrapperWidth - nextWidth - gap;
+
+  canvas.width = Math.floor(gameWidth);
+  canvas.height = canvas.width * 2;
+
+  blockSize = canvas.width / cols;
+
+  nextCanvas.width = Math.floor(nextWidth);
+  nextCanvas.height = Math.floor((nextWidth * 3) / 2);
+}
 
 let grid = Array.from({ length: rows }, () => Array(cols).fill(null));
 let score = 0;
@@ -38,6 +60,7 @@ const shapes = {
     [1, 1, 1],
   ],
 };
+
 const colors = {
   I: "rgb(0, 200, 200)",
   O: "rgb(200, 200, 0)",
@@ -97,21 +120,26 @@ function drawNextBlocks() {
   nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
   const gap = 10; // ブロック間の縦隙間
 
+  // nextCanvasに収まるようにブロックサイズを調整
+  const nextBlockSize = Math.min(nextCanvas.width / 4, (nextCanvas.height - gap * 2) / 6);
+
   nextPieces.forEach((p, i) => {
     const shape = p.shape;
-    const shapeWidth = shape[0].length * blockSize; // ブロックの幅
+    const shapeWidth = shape[0].length * nextBlockSize; // ブロックの幅
     const offsetX = (nextCanvas.width - shapeWidth) / 2; // 中央寄せ
-    const offsetY = i * 60 + i * gap; // 縦位置
+
+    // 3つのブロックを縦方向に配置
+    const offsetY = i * (nextCanvas.height / 3);
 
     shape.forEach((row, dy) => {
       row.forEach((val, dx) => {
         if (val) {
           nextCtx.fillStyle = p.color;
           nextCtx.fillRect(
-            offsetX + dx * blockSize,
-            offsetY + dy * blockSize,
-            blockSize - 2,
-            blockSize - 2,
+            offsetX + dx * nextBlockSize,
+            offsetY + dy * nextBlockSize,
+            nextBlockSize - 2,
+            nextBlockSize - 2,
           );
         }
       });

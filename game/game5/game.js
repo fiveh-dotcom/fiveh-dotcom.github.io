@@ -393,7 +393,7 @@ function clampTouchToCanvas(touch) {
   };
 }
 
-window.addEventListener("touchmove", (e) => {
+canvas.addEventListener("touchmove", (e) => {
   e.preventDefault(); // スクロール防止
   if (!isTouching || !currentBlock) return;
 

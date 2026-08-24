@@ -30,6 +30,15 @@ window.addEventListener("load", () => {
   const closeGame = document.getElementById("closeGame");
   const backToMenu = document.getElementById("backToMenu");
 
+  // スクロール制御
+  function lockScroll() {
+    document.body.style.overflow = "hidden";
+  }
+
+  function unlockScroll() {
+    document.body.style.overflow = "";
+  }
+
   let clickCount = 0;
   let timer = null;
   const limitTime = 3000; // 3秒
@@ -47,6 +56,7 @@ window.addEventListener("load", () => {
 
     if (clickCount >= 5) {
       menu.style.display = "block";
+      lockScroll();
 
       // 成功したらリセット
       clearTimeout(timer);
@@ -62,17 +72,20 @@ window.addEventListener("load", () => {
       frame.src = game;
       menu.style.display = "none";
       container.style.display = "block";
+      lockScroll();
     });
   });
 
   // 閉じる
   closeMenu.addEventListener("click", () => {
     menu.style.display = "none";
+    unlockScroll();
   });
 
   closeGame.addEventListener("click", () => {
     container.style.display = "none";
     frame.src = "";
+    unlockScroll();
   });
 
   // ゲーム画面からメニューに戻る
@@ -80,5 +93,6 @@ window.addEventListener("load", () => {
     container.style.display = "none"; // ゲーム画面を隠す
     menu.style.display = "block"; // メニューを表示
     frame.src = ""; // iframe をリセット
+    lockScroll();
   });
 })();

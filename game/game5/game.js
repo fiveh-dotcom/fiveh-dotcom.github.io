@@ -8,12 +8,10 @@ const rows = 10;
 const cols = 5;
 let blockSize = 0;
 
-resizeCanvases();
-window.addEventListener("resize", resizeCanvases);
-
 let grid = [];
 let score = 0;
 let gameStarted = false;
+let gameOver = false;
 
 let currentBlock = null;
 let nextBlocks = [];
@@ -52,7 +50,15 @@ function resizeCanvases() {
 
   nextCanvas.width = Math.floor(nextWidth);
   nextCanvas.height = Math.floor((nextWidth * 3) / 2);
+
+  // ゲームオーバー後のリサイズでも盤面を再描画
+  if (gameOver) {
+    drawGrid();
+  }
 }
+
+resizeCanvases();
+window.addEventListener("resize", resizeCanvases);
 
 // 数字省略表示
 function formatNumber(n) {
@@ -229,6 +235,7 @@ function drop() {
       if (!canMove(currentBlock.x, currentBlock.y)) {
         alert("ゲームオーバー！スコア: " + score);
         gameStarted = false;
+        gameOver = true;
       }
     });
 
@@ -249,6 +256,7 @@ function drop() {
     if (!canMove(currentBlock.x, currentBlock.y)) {
       alert("ゲームオーバー！スコア: " + score);
       gameStarted = false;
+      gameOver = true;
     }
   });
 }
@@ -472,6 +480,7 @@ document.getElementById("startBtn").addEventListener("click", () => {
   nextBlocks = [];
   newBlock(); // currentBlock.y = 0
   gameStarted = true;
+  gameOver = false;
   dropCounter = 0; // ここが重要：最初は落下カウンター0に
   lastTime = performance.now(); // ここもリセット
   gameLoop();

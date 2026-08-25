@@ -29,11 +29,17 @@ function resizeCanvases() {
   if (nextPieces.length > 0) {
     drawNextBlocks();
   }
+
+  // ゲームオーバー後のリサイズでも盤面を再描画
+  if (gameOver) {
+    drawGrid();
+  }
 }
 
 let grid = Array.from({ length: rows }, () => Array(cols).fill(null));
 let score = 0;
 let gameStarted = false;
+let gameOver = false;
 
 const shapes = {
   I: [[1, 1, 1, 1]],
@@ -278,6 +284,7 @@ function gameLoop(timeStamp) {
       if (!canMove(0, 0)) {
         alert("ゲームオーバー！スコア: " + score);
         gameStarted = false;
+        gameOver = true;
       }
     }
   }
@@ -289,6 +296,7 @@ document.getElementById("startBtn").addEventListener("click", () => {
   grid = Array.from({ length: rows }, () => Array(cols).fill(null));
   score = 0;
   gameStarted = true;
+  gameOver = false;
 
   nextPieces = [];
   generateNextPieces();

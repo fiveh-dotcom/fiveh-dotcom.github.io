@@ -9,6 +9,8 @@ let score = 0;
 let time = 120;
 let timerInterval = null;
 let gameStarted = false;
+let gameOver = false;
+let paused = false;
 let fallingTiles = [];
 
 // 丸角描画
@@ -128,7 +130,7 @@ function updateUI() {
 
 // タイルを消す関数
 function handleTileInteraction(clientX, clientY) {
-  if (!gameStarted) return;
+  if (!gameStarted || paused) return;
   const tileSize = resizeCanvas();
   const rect = canvas.getBoundingClientRect();
   const x = Math.floor((clientX - rect.left) / tileSize);
@@ -202,6 +204,8 @@ canvas.addEventListener("click", (e) => {
 
 function startTimer() {
   timerInterval = setInterval(() => {
+    if (paused) return;
+
     time--;
     if (time < 0) time = 0;
     updateUI();
@@ -210,12 +214,13 @@ function startTimer() {
       clearInterval(timerInterval);
       alert("ゲームオーバー！スコア: " + score);
       gameStarted = false;
+      gameOver = true;
     }
   }, 1000);
 }
 
 function gameLoop() {
-  if (gameStarted) {
+  if (gameStarted && !paused) {
     updateFallingTiles();
     drawGrid();
     updateUI();
@@ -231,14 +236,35 @@ function gameLoop() {
   requestAnimationFrame(gameLoop);
 }
 
+// スタートボタン
 document.getElementById("startBtn").addEventListener("click", () => {
   score = 0;
   time = 120;
   initGrid();
   fallingTiles = [];
   gameStarted = true;
+  gameOver = false;
+  paused = false;
+  document.getElementById("pauseBtn").textContent = "⏸";
   clearInterval(timerInterval);
   startTimer();
+});
+
+// 一時停止ボタン
+document.getElementById("pauseBtn").addEventListener("click", () => {
+  if (!gameStarted || gameOver) return;
+
+  paused = !paused;
+
+  if (paused) {
+    pauseBtn.textContent = "▶";
+    pauseBtn.classList.add("small-icon");
+    document.getElementById("pauseOverlay").classList.add("active");
+  } else {
+    pauseBtn.textContent = "⏸";
+    pauseBtn.classList.remove("small-icon");
+    document.getElementById("pauseOverlay").classList.remove("active");
+  }
 });
 
 gameLoop();

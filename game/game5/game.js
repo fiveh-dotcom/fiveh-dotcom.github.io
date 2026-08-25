@@ -12,6 +12,7 @@ let grid = [];
 let score = 0;
 let gameStarted = false;
 let gameOver = false;
+let paused = false;
 
 let currentBlock = null;
 let nextBlocks = [];
@@ -198,7 +199,7 @@ function canMove(x, y) {
 
 // 落下
 function drop() {
-  if (!currentBlock || mergeLock) return;
+  if (!currentBlock || mergeLock || paused) return;
 
   const nextX = currentBlock.x;
   const nextY = currentBlock.y + 1;
@@ -356,7 +357,7 @@ async function animateMerge(fx, fy, tx, ty) {
 
 // キー操作
 document.addEventListener("keydown", (e) => {
-  if (!gameStarted || !currentBlock) return;
+  if (!gameStarted || !currentBlock || paused) return;
   if (e.key === "ArrowLeft" && canMove(currentBlock.x - 1, currentBlock.y)) currentBlock.x--;
   if (e.key === "ArrowRight" && canMove(currentBlock.x + 1, currentBlock.y)) currentBlock.x++;
   if (e.key === "ArrowDown") drop();
@@ -372,7 +373,7 @@ let touchPrevX = 0;
 let touchPrevY = 0;
 
 canvas.addEventListener("touchstart", (e) => {
-  if (!gameStarted || !currentBlock || mergeLock) return;
+  if (!gameStarted || !currentBlock || mergeLock || paused) return;
 
   const touch = e.touches[0];
   const rect = canvas.getBoundingClientRect();
@@ -403,7 +404,7 @@ function clampTouchToCanvas(touch) {
 
 canvas.addEventListener("touchmove", (e) => {
   e.preventDefault(); // スクロール防止
-  if (!isTouching || !currentBlock) return;
+  if (!isTouching || !currentBlock || paused) return;
 
   const t = clampTouchToCanvas(e.touches[0]);
   const dx = t.x - touchPrevX;
@@ -455,11 +456,18 @@ let lastTime = 0,
   dropInterval = 500;
 function gameLoop(time = performance.now()) {
   if (!gameStarted) return;
+
+  if (paused) {
+    lastTime = time;
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+
   const delta = time - lastTime;
   lastTime = time;
 
   dropCounter += delta;
-  if (!isTouching && dropCounter > dropInterval) {
+  if (dropCounter > dropInterval) {
     drop();
     dropCounter = 0;
   }
@@ -469,7 +477,7 @@ function gameLoop(time = performance.now()) {
   requestAnimationFrame(gameLoop);
 }
 
-// スタート
+// スタートボタン
 document.getElementById("startBtn").addEventListener("click", () => {
   score = 0;
 
@@ -481,7 +489,27 @@ document.getElementById("startBtn").addEventListener("click", () => {
   newBlock(); // currentBlock.y = 0
   gameStarted = true;
   gameOver = false;
+  paused = false;
+  document.getElementById("pauseBtn").textContent = "⏸";
   dropCounter = 0; // ここが重要：最初は落下カウンター0に
   lastTime = performance.now(); // ここもリセット
   gameLoop();
+});
+
+// 一時停止ボタン
+document.getElementById("pauseBtn").addEventListener("click", () => {
+  if (!gameStarted || gameOver) return;
+
+  paused = !paused;
+
+  if (paused) {
+    pauseBtn.textContent = "▶";
+    pauseBtn.classList.add("small-icon");
+    document.getElementById("pauseOverlay").classList.add("active");
+  } else {
+    pauseBtn.textContent = "⏸";
+    pauseBtn.classList.remove("small-icon");
+    document.getElementById("pauseOverlay").classList.remove("active");
+    lastTime = performance.now();
+  }
 });

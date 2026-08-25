@@ -667,7 +667,7 @@ function checkGameOver() {
   }
 
   setTimeout(() => {
-    alert("ゲームオーバー！ スコア: " + score);
+    alert("ゲームオーバー！スコア: " + score);
   }, 100);
 }
 
@@ -694,6 +694,7 @@ nextCanvases.forEach((canvas, index) => {
   canvas.addEventListener("touchstart", (e) => startDrag(e, index));
 });
 
+// スタートボタン
 document.getElementById("startBtn").addEventListener("click", () => {
   score = 0;
   scoreElem.innerText = "Score: 0";

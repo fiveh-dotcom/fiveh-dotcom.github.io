@@ -40,6 +40,7 @@ let grid = Array.from({ length: rows }, () => Array(cols).fill(null));
 let score = 0;
 let gameStarted = false;
 let gameOver = false;
+let paused = false;
 
 const shapes = {
   I: [[1, 1, 1, 1]],
@@ -215,7 +216,8 @@ function rotatePiece() {
 
 // キーボード操作
 document.addEventListener("keydown", (e) => {
-  if (!gameStarted) return;
+  if (!gameStarted || paused) return;
+
   if (e.key === "ArrowLeft" && canMove(-1, 0)) pieceX--;
   if (e.key === "ArrowRight" && canMove(1, 0)) pieceX++;
   if (e.key === "ArrowDown" && canMove(0, 1)) pieceY++;
@@ -227,6 +229,8 @@ let touchPrevX = 0;
 let touchPrevY = 0;
 
 canvas.addEventListener("touchstart", (e) => {
+  if (!gameStarted || paused) return;
+
   const t = e.touches[0];
   touchPrevX = t.clientX;
   touchPrevY = t.clientY;
@@ -236,7 +240,7 @@ canvas.addEventListener(
   "touchmove",
   (e) => {
     e.preventDefault();
-    if (!currentPiece) return; // ← ブロック固定中は動かせない
+    if (!gameStarted || paused || !currentPiece) return; // ← ブロック固定中は動かせない
 
     const t = e.touches[0];
     const dx = t.clientX - touchPrevX;
@@ -259,6 +263,8 @@ canvas.addEventListener(
 );
 
 canvas.addEventListener("touchend", (e) => {
+  if (!gameStarted || paused || !currentPiece) return;
+
   const t = e.changedTouches[0];
   const dy = t.clientY - touchPrevY;
 
@@ -272,6 +278,13 @@ let lastTime = 0;
 
 function gameLoop(timeStamp) {
   if (!gameStarted) return;
+
+  if (paused) {
+    lastTime = timeStamp;
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+
   const deltaTime = timeStamp - lastTime;
   lastTime = timeStamp;
   dropCounter += deltaTime;
@@ -292,11 +305,14 @@ function gameLoop(timeStamp) {
   requestAnimationFrame(gameLoop);
 }
 
+// スタートボタン
 document.getElementById("startBtn").addEventListener("click", () => {
   grid = Array.from({ length: rows }, () => Array(cols).fill(null));
   score = 0;
   gameStarted = true;
   gameOver = false;
+  paused = false;
+  document.getElementById("pauseBtn").textContent = "⏸";
 
   nextPieces = [];
   generateNextPieces();
@@ -310,4 +326,22 @@ document.getElementById("startBtn").addEventListener("click", () => {
   // ブロックが二段目から落ちるように見える
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
+});
+
+// 一時停止ボタン
+document.getElementById("pauseBtn").addEventListener("click", () => {
+  if (!gameStarted || gameOver) return;
+
+  paused = !paused;
+
+  if (paused) {
+    pauseBtn.textContent = "▶";
+    pauseBtn.classList.add("small-icon");
+    document.getElementById("pauseOverlay").classList.add("active");
+  } else {
+    pauseBtn.textContent = "⏸";
+    pauseBtn.classList.remove("small-icon");
+    document.getElementById("pauseOverlay").classList.remove("active");
+    lastTime = performance.now();
+  }
 });

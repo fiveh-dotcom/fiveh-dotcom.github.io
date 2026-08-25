@@ -33,6 +33,8 @@ let blocks = [];
 
 let score = 0;
 let gameStarted = false;
+let gameOver = false;
+let paused = false;
 
 function createBlocks() {
   blocks = [];
@@ -202,6 +204,11 @@ function draw() {
   drawBalls();
   drawPaddle();
 
+  // ポーズ中はゲームの更新を行わない
+  if (paused) {
+    return;
+  }
+
   // まずボール移動前に衝突判定
   collisionDetection();
   moveItems();
@@ -235,6 +242,7 @@ function draw() {
   if (balls.length === 0 && gameStarted) {
     alert("ゲームオーバー！スコア: " + score);
     gameStarted = false;
+    gameOver = true;
     cancelAnimationFrame(animationId);
     return;
   }
@@ -323,8 +331,34 @@ document.getElementById("startBtn").addEventListener("click", () => {
   rightPressed = false;
   leftPressed = false;
   gameStarted = true;
+  gameOver = false;
+  paused = false;
+  document.getElementById("pauseBtn").textContent = "⏸";
   createBlocks();
   items.length = 0; // アイテムもリセット
   document.getElementById("score").innerText = "Score: 0";
   draw();
+});
+
+// 一時停止ボタン
+document.getElementById("pauseBtn").addEventListener("click", () => {
+  if (!gameStarted || gameOver) return;
+
+  paused = !paused;
+
+  if (paused) {
+    pauseBtn.textContent = "▶";
+    pauseBtn.classList.add("small-icon");
+    document.getElementById("pauseOverlay").classList.add("active");
+
+    // 現在のアニメーションを停止
+    cancelAnimationFrame(animationId);
+  } else {
+    pauseBtn.textContent = "⏸";
+    pauseBtn.classList.remove("small-icon");
+    document.getElementById("pauseOverlay").classList.remove("active");
+
+    // アニメーションを再開
+    draw();
+  }
 });

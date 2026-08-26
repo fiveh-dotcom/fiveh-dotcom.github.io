@@ -2,6 +2,7 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const scoreElem = document.getElementById("score");
 const nextCanvases = document.querySelectorAll(".nextBlockCanvas");
+const rotateButtons = document.querySelectorAll(".rotateBtn");
 
 const rows = 10;
 const cols = 10;
@@ -205,6 +206,22 @@ function rotateShape(shape) {
   }
 
   return result;
+}
+
+function rotateBlock(index) {
+  if (!gameStarted) return;
+  if (draggingBlock) return;
+
+  const block = currentBlocks[index];
+
+  if (!block) return;
+
+  block.shape = rotateShape(block.shape);
+
+  drawNextBlocks();
+
+  // 回転後の形も含めてゲームオーバー判定
+  checkGameOver();
 }
 
 function addRotations(baseShape, weight, special = null) {
@@ -659,10 +676,24 @@ function checkGameOver() {
   for (const block of currentBlocks) {
     if (!block) continue;
 
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        if (canPlace(block, x, y)) return;
+    let shape = block.shape;
+
+    // 4方向を確認
+    for (let rotation = 0; rotation < 4; rotation++) {
+      const testBlock = {
+        ...block,
+        shape,
+      };
+
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          if (canPlace(testBlock, x, y)) {
+            return;
+          }
+        }
       }
+
+      shape = rotateShape(shape);
     }
   }
 
@@ -692,6 +723,26 @@ document.addEventListener("touchend", endDrag);
 nextCanvases.forEach((canvas, index) => {
   canvas.addEventListener("mousedown", (e) => startDrag(e, index));
   canvas.addEventListener("touchstart", (e) => startDrag(e, index));
+});
+
+rotateButtons.forEach((button, index) => {
+  button.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    rotateBlock(index);
+  });
+
+  button.addEventListener(
+    "touchstart",
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      rotateBlock(index);
+    },
+    { passive: false },
+  );
 });
 
 // スタートボタン

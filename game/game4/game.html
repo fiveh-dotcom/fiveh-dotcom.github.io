@@ -52,13 +52,51 @@
         margin-top: 10px;
       }
 
-      .nextBlockCanvas {
+      .nextBlockWrapper {
+        position: relative;
         flex: 1;
         min-width: 0;
         aspect-ratio: 1 / 1;
+      }
+
+      .nextBlockCanvas {
+        width: 100%;
+        height: 100%;
         background: #111;
         border: 2px solid #fff;
         box-sizing: border-box;
+        display: block;
+      }
+
+      .rotateBtn {
+        position: absolute;
+        right: 5px;
+        bottom: 5px;
+
+        width: 32px;
+        height: 32px;
+
+        padding: 0;
+        border: 1px solid #fff;
+        border-radius: 50%;
+
+        background: rgba(0, 0, 0, 0.75);
+        color: #fff;
+
+        font-size: 22px;
+        line-height: 30px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        cursor: pointer;
+        touch-action: manipulation;
+        z-index: 2;
+      }
+
+      .rotateBtn:active {
+        transform: scale(0.9);
       }
 
       #startBtn {
@@ -79,9 +117,20 @@
     <canvas id="gameCanvas"></canvas>
 
     <div id="nextBlocksContainer">
-      <canvas class="nextBlockCanvas"></canvas>
-      <canvas class="nextBlockCanvas"></canvas>
-      <canvas class="nextBlockCanvas"></canvas>
+      <div class="nextBlockWrapper">
+        <canvas class="nextBlockCanvas"></canvas>
+        <button class="rotateBtn" aria-label="ブロックを回転">↻</button>
+      </div>
+
+      <div class="nextBlockWrapper">
+        <canvas class="nextBlockCanvas"></canvas>
+        <button class="rotateBtn" aria-label="ブロックを回転">↻</button>
+      </div>
+
+      <div class="nextBlockWrapper">
+        <canvas class="nextBlockCanvas"></canvas>
+        <button class="rotateBtn" aria-label="ブロックを回転">↻</button>
+      </div>
     </div>
 
     <button id="startBtn">ゲームスタート</button>

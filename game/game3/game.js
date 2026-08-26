@@ -7,14 +7,16 @@ const canvasHeight = 600;
 canvas.width = canvasWidth;
 canvas.height = canvasHeight;
 
+const paddleHeight = 10;
+const paddleWidth = 100;
+const paddleBottom = 30; // 下端から30px上
+
 let ballRadius = 6;
 let ballX = canvasWidth / 2;
-let ballY = canvasHeight - 30;
+let ballY = canvasHeight - paddleBottom - paddleHeight - ballRadius - 2;
 let ballSpeedX = 7;
 let ballSpeedY = -7;
 
-const paddleHeight = 10;
-const paddleWidth = 100;
 let paddleX = (canvasWidth - paddleWidth) / 2;
 
 const paddleSpeed = 8;
@@ -86,7 +88,7 @@ function drawBalls() {
 
 function drawPaddle() {
   ctx.fillStyle = "#fff";
-  ctx.fillRect(paddleX, canvasHeight - paddleHeight - 10, paddleWidth, paddleHeight);
+  ctx.fillRect(paddleX, canvasHeight - paddleHeight - paddleBottom, paddleWidth, paddleHeight);
 }
 
 // ================= アイテム設定 =================
@@ -122,7 +124,7 @@ function moveItems() {
 
     // パドルとの当たり判定
     if (
-      item.y + item.height >= canvasHeight - paddleHeight - 10 &&
+      item.y + item.height >= canvasHeight - paddleHeight - paddleBottom &&
       item.x + item.width >= paddleX &&
       item.x <= paddleX + paddleWidth
     ) {
@@ -221,9 +223,21 @@ function draw() {
     if (ball.x + ball.radius > canvasWidth || ball.x - ball.radius < 0) ball.speedX = -ball.speedX;
     if (ball.y - ball.radius < 0) ball.speedY = -ball.speedY;
 
-    if (ball.y + ball.radius > canvasHeight - paddleHeight - 10 && ball.x > paddleX && ball.x < paddleX + paddleWidth) {
-      ball.speedY = -ball.speedY;
-    } else if (ball.y + ball.radius > canvasHeight) {
+    const paddleY = canvasHeight - paddleHeight - paddleBottom;
+
+    if (
+      ball.speedY > 0 &&
+      ball.y + ball.radius >= paddleY &&
+      ball.y - ball.radius <= paddleY + paddleHeight &&
+      ball.x + ball.radius >= paddleX &&
+      ball.x - ball.radius <= paddleX + paddleWidth
+    ) {
+      // ボールをパドルの真上に戻す
+      ball.y = paddleY - ball.radius;
+
+      // 必ず上方向へ反射
+      ball.speedY = -Math.abs(ball.speedY);
+    } else if (ball.y - ball.radius > canvasHeight) {
       // 下に落ちたボールを消す
       balls = balls.filter((b) => b !== ball);
     }
@@ -267,7 +281,7 @@ canvas.addEventListener("mousedown", (e) => {
   const scaleY = canvasHeight / rect.height;
   const mouseY = (e.clientY - rect.top) * scaleY;
 
-  if (mouseY > canvasHeight - paddleHeight - 10) {
+  if (mouseY > canvasHeight - paddleHeight - paddleBottom) {
     isDragging = true;
   }
 });
@@ -291,7 +305,7 @@ canvas.addEventListener("touchstart", (e) => {
 
   const touchY = (touch.clientY - rect.top) * scaleY;
 
-  if (touchY > canvasHeight - paddleHeight - 10) {
+  if (touchY > canvasHeight - paddleHeight - paddleBottom) {
     isDragging = true;
   }
 });
@@ -324,7 +338,15 @@ document.getElementById("startBtn").addEventListener("click", () => {
   if (animationId) cancelAnimationFrame(animationId);
 
   // 複数ボール初期化
-  balls = [{ x: canvasWidth / 2, y: canvasHeight - 30, speedX: 7, speedY: -7, radius: ballRadius }];
+  balls = [
+    {
+      x: canvasWidth / 2,
+      y: canvasHeight - paddleBottom - paddleHeight - ballRadius - 2,
+      speedX: 7,
+      speedY: -7,
+      radius: ballRadius,
+    },
+  ];
 
   paddleX = (canvasWidth - paddleWidth) / 2;
   score = 0;

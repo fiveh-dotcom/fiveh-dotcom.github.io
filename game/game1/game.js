@@ -10,6 +10,7 @@ let time = 120;
 let timerInterval = null;
 let gameStarted = false;
 let gameOver = false;
+let gameCleared = false;
 let paused = false;
 let fallingTiles = [];
 
@@ -128,6 +129,47 @@ function updateUI() {
   document.getElementById("score").innerText = "Score: " + score;
 }
 
+// ============================================================
+// ゲーム結果表示
+// ============================================================
+
+function drawGameResult(title) {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#fff";
+  ctx.textAlign = "center";
+
+  ctx.font = "bold 36px sans-serif";
+  ctx.fillText(title, canvas.width / 2, canvas.height / 2 - 20);
+
+  ctx.font = "20px sans-serif";
+  ctx.fillText("Score: " + score, canvas.width / 2, canvas.height / 2 + 25);
+
+  ctx.textAlign = "left";
+}
+
+// ============================================================
+// ゲーム終了処理
+// ============================================================
+
+function endGame(result) {
+  gameStarted = false;
+  clearInterval(timerInterval);
+
+  if (result === "clear") {
+    gameOver = false;
+    gameCleared = true;
+    drawGameResult("GAME CLEAR");
+  } else {
+    gameOver = true;
+    gameCleared = false;
+    drawGameResult("GAME OVER");
+  }
+
+  document.getElementById("startBtn").textContent = "もう一度プレイ";
+}
+
 // タイルを消す関数
 function handleTileInteraction(clientX, clientY) {
   if (!gameStarted || paused) return;
@@ -207,14 +249,14 @@ function startTimer() {
     if (paused) return;
 
     time--;
+
     if (time < 0) time = 0;
+
     updateUI();
+
     if (time <= 0) {
       time = 0;
-      clearInterval(timerInterval);
-      alert("ゲームオーバー！スコア: " + score);
-      gameStarted = false;
-      gameOver = true;
+      endGame("over");
     }
   }, 1000);
 }
@@ -227,12 +269,12 @@ function gameLoop() {
 
     // ここでクリア判定
     const tilesLeft = grid.flat().filter((c) => c !== null).length;
+
     if (tilesLeft === 0 && fallingTiles.length === 0) {
-      alert("クリア！スコア: " + score);
-      gameStarted = false;
-      clearInterval(timerInterval);
+      endGame("clear");
     }
   }
+
   requestAnimationFrame(gameLoop);
 }
 
@@ -243,7 +285,9 @@ document.getElementById("startBtn").addEventListener("click", () => {
   initGrid();
   fallingTiles = [];
   gameStarted = true;
+  document.getElementById("startBtn").textContent = "ゲームリセット";
   gameOver = false;
+  gameCleared = false;
   paused = false;
   document.getElementById("pauseBtn").textContent = "⏸";
   clearInterval(timerInterval);

@@ -36,6 +36,7 @@ let blocks = [];
 let score = 0;
 let gameStarted = false;
 let gameOver = false;
+let gameCleared = false;
 let paused = false;
 
 function createBlocks() {
@@ -196,6 +197,49 @@ function collisionDetection() {
   });
 }
 
+// ============================================================
+// ゲーム結果表示
+// ============================================================
+
+function drawGameResult(title) {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+  ctx.fillStyle = "#fff";
+  ctx.textAlign = "center";
+
+  ctx.font = "bold 36px sans-serif";
+  ctx.fillText(title, canvasWidth / 2, canvasHeight / 2 - 20);
+
+  ctx.font = "20px sans-serif";
+  ctx.fillText("Score: " + score, canvasWidth / 2, canvasHeight / 2 + 25);
+
+  ctx.textAlign = "left";
+}
+
+// ============================================================
+// ゲーム終了処理
+// ============================================================
+
+function endGame(result) {
+  gameStarted = false;
+  paused = false;
+
+  if (result === "clear") {
+    gameOver = false;
+    gameCleared = true;
+    drawGameResult("GAME CLEAR");
+  } else {
+    gameOver = true;
+    gameCleared = false;
+    drawGameResult("GAME OVER");
+  }
+
+  document.getElementById("startBtn").textContent = "もう一度プレイ";
+
+  cancelAnimationFrame(animationId);
+}
+
 let animationId; // requestAnimationFrame の ID を保持
 
 function draw() {
@@ -246,18 +290,13 @@ function draw() {
   // クリア判定
   const allDestroyed = blocks.every((row) => row.every((b) => b.destroyed));
   if (allDestroyed) {
-    alert("クリア！スコア: " + score);
-    gameStarted = false;
-    cancelAnimationFrame(animationId);
+    endGame("clear");
     return;
   }
 
   // ゲームオーバー判定
   if (balls.length === 0 && gameStarted) {
-    alert("ゲームオーバー！スコア: " + score);
-    gameStarted = false;
-    gameOver = true;
-    cancelAnimationFrame(animationId);
+    endGame("over");
     return;
   }
 
@@ -353,7 +392,9 @@ document.getElementById("startBtn").addEventListener("click", () => {
   rightPressed = false;
   leftPressed = false;
   gameStarted = true;
+  document.getElementById("startBtn").textContent = "ゲームリセット";
   gameOver = false;
+  gameCleared = false;
   paused = false;
   document.getElementById("pauseBtn").textContent = "⏸";
   createBlocks();

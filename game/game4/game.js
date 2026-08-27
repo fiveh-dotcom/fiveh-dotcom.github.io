@@ -56,6 +56,12 @@ window.addEventListener("resize", () => {
   drawNextBlocks();
   drawGrid();
   syncOverlay();
+
+  if (gameOver) {
+    drawGameResult("GAME OVER");
+  } else if (gameCleared) {
+    drawGameResult("GAME CLEAR");
+  }
 });
 
 /* ========================= */
@@ -65,6 +71,8 @@ let score = 0;
 let currentBlocks = [];
 let draggingBlock = null;
 let gameStarted = false;
+let gameOver = false;
+let gameCleared = false;
 
 /* =========================
    ブロック定義
@@ -312,6 +320,53 @@ function initGrid() {
 
 /* ========================= */
 
+// ============================================================
+// ゲーム結果表示
+// ============================================================
+
+function drawGameResult(title) {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#fff";
+  ctx.textAlign = "center";
+
+  ctx.font = "bold 36px sans-serif";
+  ctx.fillText(title, canvas.width / 2, canvas.height / 2 - 20);
+
+  ctx.font = "20px sans-serif";
+  ctx.fillText("Score: " + score, canvas.width / 2, canvas.height / 2 + 25);
+
+  ctx.textAlign = "left";
+
+  nextCanvases.forEach((nextCanvas, i) => {
+    const nextCtx = nextCanvas.getContext("2d");
+    nextCtx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+  });
+}
+
+// ============================================================
+// ゲーム終了処理
+// ============================================================
+
+function endGame(result) {
+  gameStarted = false;
+  paused = false;
+
+  if (result === "clear") {
+    gameOver = false;
+    gameCleared = true;
+    drawGameResult("GAME CLEAR");
+  } else {
+    gameOver = true;
+    gameCleared = false;
+    drawGameResult("GAME OVER");
+  }
+
+  document.getElementById("startBtn").textContent = "もう一度プレイ";
+}
+
 function generateBlocks() {
   currentBlocks = [];
 
@@ -333,25 +388,78 @@ function generateBlocks() {
 ========================= */
 
 function drawBombTile(ctxRef, x, y, size) {
-  const grad = ctxRef.createRadialGradient(x + size / 2, y + size / 2, 2, x + size / 2, y + size / 2, size);
+  const cx = x + size / 2;
+  const cy = y + size / 2;
+  const r = size * 0.32;
 
-  grad.addColorStop(0, "white");
-  grad.addColorStop(0.3, "yellow");
-  grad.addColorStop(0.6, "orange");
-  grad.addColorStop(1, "red");
+  ctxRef.save();
+
+  // =========================
+  // 爆弾本体
+  // =========================
+
+  const grad = ctxRef.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.1, cx, cy, r);
+
+  grad.addColorStop(0, "#777");
+  grad.addColorStop(0.35, "#333");
+  grad.addColorStop(1, "#080808");
 
   ctxRef.fillStyle = grad;
-  ctxRef.fillRect(x, y, size - 2, size - 2);
+
+  ctxRef.beginPath();
+  ctxRef.arc(cx, cy + size * 0.05, r, 0, Math.PI * 2);
+  ctxRef.fill();
+
+  // =========================
+  // 爆弾の光
+  // =========================
+
+  ctxRef.fillStyle = "rgba(255,255,255,0.5)";
+
+  ctxRef.beginPath();
+  ctxRef.arc(cx - r * 0.35, cy - r * 0.35, r * 0.15, 0, Math.PI * 2);
+  ctxRef.fill();
+
+  // =========================
+  // 導火線
+  // =========================
+
+  ctxRef.strokeStyle = "#222";
+  ctxRef.lineWidth = Math.max(2, size * 0.08);
+  ctxRef.lineCap = "round";
+
+  ctxRef.beginPath();
+  ctxRef.moveTo(cx + r * 0.55, cy - r * 0.65);
+  ctxRef.quadraticCurveTo(cx + r * 0.9, cy - r * 1.15, cx + r * 0.75, cy - r * 1.35);
+  ctxRef.stroke();
+
+  // =========================
+  // 導火線の先の火
+  // =========================
+
+  ctxRef.fillStyle = "#ff8c00";
+
+  ctxRef.beginPath();
+  ctxRef.arc(cx + r * 0.75, cy - r * 1.35, Math.max(2, size * 0.1), 0, Math.PI * 2);
+  ctxRef.fill();
+
+  ctxRef.fillStyle = "#fff";
+
+  ctxRef.beginPath();
+  ctxRef.arc(cx + r * 0.75, cy - r * 1.35, Math.max(1, size * 0.045), 0, Math.PI * 2);
+  ctxRef.fill();
+
+  ctxRef.restore();
 }
 
 /* ========================= */
 
 function drawNextBlocks() {
-  nextCanvases.forEach((canvas, i) => {
-    const ctx2 = canvas.getContext("2d");
-    ctx2.clearRect(0, 0, canvas.width, canvas.height);
+  nextCanvases.forEach((nextCanvas, i) => {
+    const ctx2 = nextCanvas.getContext("2d");
+    ctx2.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
 
-    if (!gameStarted) return;
+    if (!gameStarted && !gameOver && !gameCleared) return;
 
     const block = currentBlocks[i];
     if (!block) return;
@@ -389,8 +497,12 @@ function drawGhost() {
 
   const ok = canPlace(block, gx, gy);
 
+  // ここに置いたら消えるマス
+  const clearingCells = ok ? getClearingCells(block, gx, gy) : [];
+
   ctx.globalAlpha = 0.4;
 
+  // ゴースト本体
   for (let y = 0; y < block.shape.length; y++) {
     for (let x = 0; x < block.shape[y].length; x++) {
       if (!block.shape[y][x]) continue;
@@ -398,14 +510,36 @@ function drawGhost() {
       const px = gx + x;
       const py = gy + y;
 
-      if (px < 0 || py < 0 || px >= cols || py >= rows) continue;
+      if (px < 0 || py < 0 || px >= cols || py >= rows) {
+        continue;
+      }
 
       ctx.fillStyle = ok ? "#0f0" : "red";
+
       ctx.fillRect(px * tileSize, py * tileSize, tileSize - 2, tileSize - 2);
     }
   }
 
   ctx.globalAlpha = 1;
+
+  // 消えるマスをハイライト
+  if (clearingCells.length > 0) {
+    ctx.save();
+
+    clearingCells.forEach(({ x, y }) => {
+      const px = x * tileSize;
+      const py = y * tileSize;
+
+      ctx.shadowColor = "rgba(255, 200, 0, 0.45)";
+      ctx.shadowBlur = 15;
+
+      ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+
+      ctx.fillRect(px, py, tileSize - 2, tileSize - 2);
+    });
+
+    ctx.restore();
+  }
 
   if (block.special === "rainbow" && ok) {
     drawExplosionPreview(gx, gy);
@@ -521,6 +655,59 @@ function canPlace(block, gx, gy) {
 }
 
 /* ========================= */
+
+function getClearingCells(block, gx, gy) {
+  // まず現在のgridをコピー
+  const testGrid = grid.map((row) => [...row]);
+
+  // ブロックを仮配置
+  for (let y = 0; y < block.shape.length; y++) {
+    for (let x = 0; x < block.shape[y].length; x++) {
+      if (!block.shape[y][x]) continue;
+
+      const px = gx + x;
+      const py = gy + y;
+
+      if (px < 0 || py < 0 || px >= cols || py >= rows) {
+        return [];
+      }
+
+      testGrid[py][px] = block.special === "rainbow" ? "rainbow" : block.color;
+    }
+  }
+
+  const clearing = [];
+
+  // 揃った行
+  for (let y = 0; y < rows; y++) {
+    if (testGrid[y].every((cell) => cell)) {
+      for (let x = 0; x < cols; x++) {
+        clearing.push({ x, y });
+      }
+    }
+  }
+
+  // 揃った列
+  for (let x = 0; x < cols; x++) {
+    let full = true;
+
+    for (let y = 0; y < rows; y++) {
+      if (!testGrid[y][x]) {
+        full = false;
+        break;
+      }
+    }
+
+    if (full) {
+      for (let y = 0; y < rows; y++) {
+        clearing.push({ x, y });
+      }
+    }
+  }
+
+  // 重複削除
+  return clearing.filter((cell, index, self) => index === self.findIndex((c) => c.x === cell.x && c.y === cell.y));
+}
 
 function clearLines() {
   let cleared = 0;
@@ -697,9 +884,8 @@ function checkGameOver() {
     }
   }
 
-  setTimeout(() => {
-    alert("ゲームオーバー！スコア: " + score);
-  }, 100);
+  // どのブロックも置けない
+  endGame("over");
 }
 
 function syncOverlay() {
@@ -720,9 +906,9 @@ document.addEventListener("touchmove", drag, { passive: false });
 document.addEventListener("mouseup", endDrag);
 document.addEventListener("touchend", endDrag);
 
-nextCanvases.forEach((canvas, index) => {
-  canvas.addEventListener("mousedown", (e) => startDrag(e, index));
-  canvas.addEventListener("touchstart", (e) => startDrag(e, index));
+nextCanvases.forEach((nextCanvas, index) => {
+  nextCanvas.addEventListener("mousedown", (e) => startDrag(e, index));
+  nextCanvas.addEventListener("touchstart", (e) => startDrag(e, index));
 });
 
 rotateButtons.forEach((button, index) => {
@@ -751,6 +937,9 @@ document.getElementById("startBtn").addEventListener("click", () => {
   scoreElem.innerText = "Score: 0";
 
   gameStarted = true;
+  document.getElementById("startBtn").textContent = "ゲームリセット";
+  gameOver = false;
+  gameCleared = false;
 
   initGrid();
   generateBlocks();

@@ -30,9 +30,15 @@ function resizeCanvases() {
     drawNextBlocks();
   }
 
-  // ゲームオーバー後のリサイズでも盤面を再描画
-  if (gameOver) {
+  // ゲーム終了後のリサイズでも盤面を再描画
+  if (gameOver || gameCleared) {
     drawGrid();
+
+    if (gameOver) {
+      drawGameResult("GAME OVER");
+    } else if (gameCleared) {
+      drawGameResult("GAME CLEAR");
+    }
   }
 }
 
@@ -40,6 +46,7 @@ let grid = Array.from({ length: rows }, () => Array(cols).fill(null));
 let score = 0;
 let gameStarted = false;
 let gameOver = false;
+let gameCleared = false;
 let paused = false;
 
 const shapes = {
@@ -103,6 +110,50 @@ function newPiece() {
   generateNextPieces();
   pieceX = Math.floor(cols / 2 - currentPiece.shape[0].length / 2);
   pieceY = 0;
+}
+
+// ============================================================
+// ゲーム結果表示
+// ============================================================
+
+function drawGameResult(title) {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#fff";
+  ctx.textAlign = "center";
+
+  ctx.font = "bold 36px sans-serif";
+  ctx.fillText(title, canvas.width / 2, canvas.height / 2 - 20);
+
+  ctx.font = "20px sans-serif";
+  ctx.fillText("Score: " + score, canvas.width / 2, canvas.height / 2 + 25);
+
+  ctx.textAlign = "left";
+
+  nextCtx.fillStyle = "rgba(0, 0, 0, 0.7)";
+  nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+}
+
+// ============================================================
+// ゲーム終了処理
+// ============================================================
+
+function endGame(result) {
+  gameStarted = false;
+  paused = false;
+
+  if (result === "clear") {
+    gameOver = false;
+    gameCleared = true;
+    drawGameResult("GAME CLEAR");
+  } else {
+    gameOver = true;
+    gameCleared = false;
+    drawGameResult("GAME OVER");
+  }
+
+  document.getElementById("startBtn").textContent = "もう一度プレイ";
 }
 
 function drawGrid() {
@@ -295,9 +346,8 @@ function gameLoop(timeStamp) {
     } else {
       lockPiece();
       if (!canMove(0, 0)) {
-        alert("ゲームオーバー！スコア: " + score);
-        gameStarted = false;
-        gameOver = true;
+        endGame("over");
+        return;
       }
     }
   }
@@ -310,7 +360,9 @@ document.getElementById("startBtn").addEventListener("click", () => {
   grid = Array.from({ length: rows }, () => Array(cols).fill(null));
   score = 0;
   gameStarted = true;
+  document.getElementById("startBtn").textContent = "ゲームリセット";
   gameOver = false;
+  gameCleared = false;
   paused = false;
   document.getElementById("pauseBtn").textContent = "⏸";
 

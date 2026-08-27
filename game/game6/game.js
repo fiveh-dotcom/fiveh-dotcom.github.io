@@ -986,14 +986,46 @@ function moveDrag(clientX) {
 
   const dx = x - dragStartX;
 
-  // 何マス移動したか
+  // ドラッグ開始位置から何マス移動したか
   const cellMove = Math.round(dx / cellSize);
 
-  const newX = originalX + cellMove;
+  // 目標位置
+  const targetX = originalX + cellMove;
 
-  // 実際に移動できる場合だけ座標を変更
-  if (newX !== draggedBlock.x && canMoveHorizontally(draggedBlock, newX)) {
-    draggedBlock.x = newX;
+  // 現在位置
+  let currentX = draggedBlock.x;
+
+  // 右方向へ移動
+  if (targetX > currentX) {
+    while (currentX < targetX) {
+      const nextX = currentX + 1;
+
+      // 1マス先へ移動できなければ、そこで停止
+      if (!canMoveHorizontally(draggedBlock, nextX)) {
+        break;
+      }
+
+      currentX = nextX;
+    }
+  }
+
+  // 左方向へ移動
+  else if (targetX < currentX) {
+    while (currentX > targetX) {
+      const nextX = currentX - 1;
+
+      // 1マス先へ移動できなければ、そこで停止
+      if (!canMoveHorizontally(draggedBlock, nextX)) {
+        break;
+      }
+
+      currentX = nextX;
+    }
+  }
+
+  // 実際に移動した場合だけ座標を変更
+  if (currentX !== draggedBlock.x) {
+    draggedBlock.x = currentX;
   }
 
   draw();
@@ -1148,12 +1180,6 @@ canvas.addEventListener("mousemove", (e) => {
 
 canvas.addEventListener("mouseup", () => {
   endDrag();
-});
-
-canvas.addEventListener("mouseleave", () => {
-  if (isDragging) {
-    endDrag();
-  }
 });
 
 // ============================================================

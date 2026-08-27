@@ -91,6 +91,10 @@ let currentPiece = null;
 let pieceX = 0,
   pieceY = 0;
 let nextPieces = [];
+let clearingLines = [];
+let isClearing = false;
+let clearAnimationStart = 0;
+const clearAnimationDuration = 300;
 
 // 初期サイズ設定
 resizeCanvases();
@@ -158,18 +162,33 @@ function endGame(result) {
 
 function drawGrid() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
-      ctx.fillStyle = grid[y][x] || "#111";
+      const isClearingLine = clearingLines.includes(y);
+
+      if (isClearingLine) {
+        // 消える行を光らせる
+        const progress = (performance.now() - clearAnimationStart) / clearAnimationDuration;
+
+        const alpha = 0.4 + Math.sin(progress * Math.PI * 4) * 0.4;
+
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+      } else {
+        ctx.fillStyle = grid[y][x] || "#111";
+      }
+
       ctx.fillRect(x * blockSize, y * blockSize, blockSize - 2, blockSize - 2);
     }
   }
+
   if (currentPiece) {
     currentPiece.shape.forEach((row, dy) => {
       row.forEach((val, dx) => {
         if (val) {
           const px = pieceX + dx;
           const py = pieceY + dy;
+
           if (py >= 0) {
             ctx.fillStyle = currentPiece.color;
             ctx.fillRect(px * blockSize, py * blockSize, blockSize - 2, blockSize - 2);
@@ -211,17 +230,21 @@ function drawNextBlocks() {
   });
 }
 
-function canMove(dx, dy, shape = currentPiece.shape) {
+function canMove(dx, dy, shape = currentPiece?.shape) {
+  if (!shape) return false;
+
   for (let y = 0; y < shape.length; y++) {
     for (let x = 0; x < shape[y].length; x++) {
       if (shape[y][x]) {
         const nx = pieceX + x + dx;
         const ny = pieceY + y + dy;
+
         if (nx < 0 || nx >= cols || ny >= rows) return false;
         if (ny >= 0 && grid[ny][nx]) return false;
       }
     }
   }
+
   return true;
 }
 
@@ -232,31 +255,51 @@ function lockPiece() {
       if (val) {
         const nx = pieceX + dx;
         const ny = pieceY + dy;
-        if (ny >= 0) grid[ny][nx] = currentPiece.color;
+
+        if (ny >= 0) {
+          grid[ny][nx] = currentPiece.color;
+        }
       }
     });
   });
 
-  clearLines();
-
   // 固定中は操作できないようにする
   currentPiece = null;
 
-  // 次のブロックを生成
-  newPiece();
-  drawNextBlocks();
+  // 揃った列を確認
+  clearLines();
+
+  // 列消去がない場合だけ次のブロックを生成
+  if (!isClearing) {
+    newPiece();
+    drawNextBlocks();
+
+    // 次のブロックを置けない場合はゲームオーバー
+    if (!canMove(0, 0)) {
+      endGame("over");
+    }
+  }
 }
 
 function clearLines() {
-  for (let y = rows - 1; y >= 0; y--) {
+  clearingLines = [];
+
+  for (let y = 0; y < rows; y++) {
     if (grid[y].every((c) => c !== null)) {
-      grid.splice(y, 1);
-      grid.unshift(Array(cols).fill(null));
-      score += 100;
-      y++;
+      clearingLines.push(y);
     }
   }
+
+  if (clearingLines.length === 0) {
+    document.getElementById("score").innerText = "Score: " + score;
+    return;
+  }
+
+  score += clearingLines.length * 100;
   document.getElementById("score").innerText = "Score: " + score;
+
+  isClearing = true;
+  clearAnimationStart = performance.now();
 }
 
 function rotatePiece() {
@@ -336,22 +379,67 @@ function gameLoop(timeStamp) {
     return;
   }
 
-  const deltaTime = timeStamp - lastTime;
-  lastTime = timeStamp;
-  dropCounter += deltaTime;
-  if (dropCounter > dropInterval) {
-    dropCounter = 0;
-    if (canMove(0, 1)) {
-      pieceY++;
-    } else {
-      lockPiece();
-      if (!canMove(0, 0)) {
+  // 列消去アニメーション中
+  if (isClearing) {
+    drawGrid();
+
+    if (timeStamp - clearAnimationStart >= clearAnimationDuration) {
+      // アニメーション終了
+
+      // 列をまとめて削除
+      grid = grid.filter((row, y) => !clearingLines.includes(y));
+
+      // 消した行の数だけ空行を追加
+      while (grid.length < rows) {
+        grid.unshift(Array(cols).fill(null));
+      }
+
+      clearingLines = [];
+      isClearing = false;
+
+      // 次のブロックを生成
+      newPiece();
+      drawNextBlocks();
+
+      // 次のブロックを置けない場合はゲームオーバー
+      if (currentPiece && !canMove(0, 0)) {
         endGame("over");
         return;
       }
     }
+
+    requestAnimationFrame(gameLoop);
+    return;
   }
+
+  const deltaTime = timeStamp - lastTime;
+  lastTime = timeStamp;
+
+  dropCounter += deltaTime;
+
+  if (dropCounter > dropInterval) {
+    dropCounter = 0;
+
+    if (canMove(0, 1)) {
+      pieceY++;
+    } else {
+      lockPiece();
+
+      // ゲームオーバー
+      if (gameOver) {
+        return;
+      }
+
+      // 列消去アニメーション中
+      if (isClearing) {
+        requestAnimationFrame(gameLoop);
+        return;
+      }
+    }
+  }
+
   drawGrid();
+
   requestAnimationFrame(gameLoop);
 }
 

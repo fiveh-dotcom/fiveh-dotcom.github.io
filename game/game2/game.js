@@ -112,8 +112,11 @@ function newPiece() {
   generateNextPieces();
   currentPiece = nextPieces.shift();
   generateNextPieces();
+
   pieceX = Math.floor(cols / 2 - currentPiece.shape[0].length / 2);
-  pieceY = 0;
+
+  // ブロックの一番下の行だけ最初に見える位置から開始
+  pieceY = -currentPiece.shape.length + 1;
 }
 
 // ============================================================
@@ -249,6 +252,8 @@ function canMove(dx, dy, shape = currentPiece?.shape) {
 }
 
 function lockPiece() {
+  let gameOverByTop = false;
+
   // ブロックをグリッドに固定
   currentPiece.shape.forEach((row, dy) => {
     row.forEach((val, dx) => {
@@ -256,9 +261,13 @@ function lockPiece() {
         const nx = pieceX + dx;
         const ny = pieceY + dy;
 
-        if (ny >= 0) {
-          grid[ny][nx] = currentPiece.color;
+        // 画面より上にはみ出した状態で固定されたらゲームオーバー
+        if (ny < 0) {
+          gameOverByTop = true;
+          return;
         }
+
+        grid[ny][nx] = currentPiece.color;
       }
     });
   });
@@ -266,18 +275,27 @@ function lockPiece() {
   // 固定中は操作できないようにする
   currentPiece = null;
 
+  // 画面外で固定された場合はゲームオーバー
+  if (gameOverByTop) {
+    endGame("over");
+    return;
+  }
+
   // 揃った列を確認
   clearLines();
 
   // 列消去がない場合だけ次のブロックを生成
   if (!isClearing) {
     newPiece();
-    drawNextBlocks();
 
-    // 次のブロックを置けない場合はゲームオーバー
+    // ★ 次のブロックを描画する前にゲームオーバー判定
     if (!canMove(0, 0)) {
+      currentPiece = null; // ★ ゲームオーバー時は次のブロックを消す
       endGame("over");
+      return;
     }
+
+    drawNextBlocks();
   }
 }
 
@@ -399,13 +417,16 @@ function gameLoop(timeStamp) {
 
       // 次のブロックを生成
       newPiece();
-      drawNextBlocks();
 
-      // 次のブロックを置けない場合はゲームオーバー
-      if (currentPiece && !canMove(0, 0)) {
+      // ★ 描画する前にゲームオーバー判定
+      if (!canMove(0, 0)) {
+        currentPiece = null;
         endGame("over");
         return;
       }
+
+      // ゲームオーバーでなければ次のブロックを描画
+      drawNextBlocks();
     }
 
     requestAnimationFrame(gameLoop);
@@ -447,6 +468,7 @@ function gameLoop(timeStamp) {
 document.getElementById("startBtn").addEventListener("click", () => {
   grid = Array.from({ length: rows }, () => Array(cols).fill(null));
   score = 0;
+  document.getElementById("score").innerText = "Score: 0";
   gameStarted = true;
   document.getElementById("startBtn").textContent = "ゲームリセット";
   gameOver = false;

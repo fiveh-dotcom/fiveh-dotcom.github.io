@@ -289,14 +289,47 @@ function draw() {
 
   // クリア判定
   const allDestroyed = blocks.every((row) => row.every((b) => b.destroyed));
+
   if (allDestroyed) {
-    endGame("clear");
+    // 本来はendGame()のみを呼べばよいが、
+    // 最後のブロックが画面に残った状態で結果画面が表示されるため、
+    // 消えた状態を1フレーム描画してからendGame()を呼ぶ
+
+    // 最後のブロックが消えた状態を描画
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    drawBlocks();
+    drawItems();
+    drawBalls();
+    drawPaddle();
+
+    // 1フレーム後にGAME CLEARを表示
+    animationId = requestAnimationFrame(() => {
+      endGame("clear");
+    });
+
     return;
   }
 
   // ゲームオーバー判定
   if (balls.length === 0 && gameStarted) {
-    endGame("over");
+    // 本来はendGame()のみを呼べばよいが、
+    // 最後のボールが画面に残った状態で結果画面が表示されるため、
+    // 消えた状態を1フレーム描画してからendGame()を呼ぶ
+
+    // ボールが消えた状態を描画
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    drawBlocks();
+    drawItems();
+    drawBalls(); // ballsが空なのでボールは描画されない
+    drawPaddle();
+
+    // 1フレーム後にGAME OVERを表示
+    animationId = requestAnimationFrame(() => {
+      endGame("over");
+    });
+
     return;
   }
 
@@ -389,6 +422,7 @@ document.getElementById("startBtn").addEventListener("click", () => {
 
   paddleX = (canvasWidth - paddleWidth) / 2;
   score = 0;
+  document.getElementById("score").innerText = "Score: 0";
   rightPressed = false;
   leftPressed = false;
   gameStarted = true;
@@ -399,7 +433,6 @@ document.getElementById("startBtn").addEventListener("click", () => {
   document.getElementById("pauseBtn").textContent = "⏸";
   createBlocks();
   items.length = 0; // アイテムもリセット
-  document.getElementById("score").innerText = "Score: 0";
   draw();
 });
 

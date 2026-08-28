@@ -33,6 +33,20 @@ function drawRoundedRect(x, y, w, h, radius, color, alpha = 1) {
   ctx.globalAlpha = 1;
 }
 
+function initEmptyGrid() {
+  grid = [];
+
+  for (let y = 0; y < rows; y++) {
+    let row = [];
+
+    for (let x = 0; x < cols; x++) {
+      row.push(null);
+    }
+
+    grid.push(row);
+  }
+}
+
 function initGrid() {
   grid = [];
   const totalCells = rows * cols;
@@ -310,5 +324,10 @@ document.getElementById("pauseBtn").addEventListener("click", () => {
     document.getElementById("pauseOverlay").classList.remove("active");
   }
 });
+
+// ゲーム開始前の初期表示
+resizeCanvas();
+initEmptyGrid();
+drawGrid();
 
 gameLoop();

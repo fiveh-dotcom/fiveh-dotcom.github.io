@@ -315,30 +315,38 @@ function generateStage() {
   gameCleared = false;
 
   let generated = null;
-
-  // ----------------------------------------------------------
-  // 難易度
-  // ----------------------------------------------------------
+  let generatedMoves = null;
 
   let minimumMoves;
 
   if (stage <= 3) {
-    minimumMoves = 10 + stage * 2;
+    minimumMoves = 12 + stage * 2;
   } else {
-    minimumMoves = Math.min(18 + (stage - 4) * 2, 28);
+    minimumMoves = Math.min(18 + (stage - 4), 24);
   }
 
-  for (let attempt = 0; attempt < 200; attempt++) {
+  // ----------------------------------------------------------
+  // 条件を満たすステージを探す
+  // ----------------------------------------------------------
+
+  for (let attempt = 0; attempt < 300; attempt++) {
     const candidate = generateRandomLayout();
 
     if (!candidate) {
       continue;
     }
 
-    const solutionMoves = getMinimumSolutionMoves(candidate, 40);
+    const solutionMoves = getMinimumSolutionMoves(candidate, 50);
 
-    if (solutionMoves !== null && solutionMoves >= minimumMoves) {
+    // 解けない盤面は絶対に採用しない
+    if (solutionMoves === null) {
+      continue;
+    }
+
+    // 難易度条件
+    if (solutionMoves >= minimumMoves) {
       generated = candidate;
+      generatedMoves = solutionMoves;
 
       console.log(`Stage ${stage}: minimum moves = ${solutionMoves}`);
 
@@ -347,17 +355,41 @@ function generateStage() {
   }
 
   // ----------------------------------------------------------
-  // 万一生成できなかった場合
+  // 条件を満たす盤面が見つからなかった場合
   // ----------------------------------------------------------
 
   if (!generated) {
-    console.warn(`Stage ${stage}: difficulty condition not met`);
+    console.warn(`Stage ${stage}: difficulty condition not met.`);
 
-    generated = generateRandomLayout();
+    // 最低限「解ける」盤面を探す
+    for (let attempt = 0; attempt < 500; attempt++) {
+      const candidate = generateRandomLayout();
 
-    if (!generated) {
-      return;
+      if (!candidate) {
+        continue;
+      }
+
+      const solutionMoves = getMinimumSolutionMoves(candidate, 50);
+
+      if (solutionMoves !== null) {
+        generated = candidate;
+        generatedMoves = solutionMoves;
+
+        console.warn(`Stage ${stage}: fallback minimum moves = ${solutionMoves}`);
+
+        break;
+      }
     }
+  }
+
+  // ----------------------------------------------------------
+  // それでも生成できなかった場合
+  // ----------------------------------------------------------
+
+  if (!generated) {
+    console.error(`Stage ${stage}: could not generate a solvable stage.`);
+
+    return;
   }
 
   blocks = generated;

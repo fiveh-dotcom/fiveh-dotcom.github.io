@@ -45,11 +45,16 @@
         touch-action: none;
       }
 
+      #resetStageBtn,
       #startBtn {
         padding: 10px 20px;
         font-size: 18px;
         margin: 15px;
         cursor: pointer;
+      }
+
+      #resetStageBtn {
+        margin-bottom: 0;
       }
     </style>
   </head>
@@ -60,6 +65,7 @@
       <div id="score">Score: 0</div>
     </div>
     <canvas id="gameCanvas"></canvas>
+    <button id="resetStageBtn">ステージリセット</button>
     <button id="startBtn">ゲームスタート</button>
 
     <script src="game.js"></script>

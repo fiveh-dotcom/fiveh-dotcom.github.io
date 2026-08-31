@@ -17,6 +17,9 @@ let blockSize = canvasSize / cols;
 
 let blocks = [];
 
+// 現在のステージの初期配置
+let initialBlocks = [];
+
 let score = 0;
 let stage = 1;
 
@@ -103,7 +106,13 @@ function generateRandomLayout() {
   // その他のブロック
   // ------------------------------------------------------------
 
-  const blockCount = 9;
+  let blockCount;
+
+  if (stage <= 3) {
+    blockCount = 9;
+  } else {
+    blockCount = 10;
+  }
 
   let attempts = 0;
   let id = 1;
@@ -307,17 +316,26 @@ function generateStage() {
 
   let generated = null;
 
-  // ステージが進むほど少し難しくする
-  const minimumMoves = Math.min(8 + Math.floor(stage / 2), 14);
+  // ----------------------------------------------------------
+  // 難易度
+  // ----------------------------------------------------------
 
-  for (let attempt = 0; attempt < 100; attempt++) {
+  let minimumMoves;
+
+  if (stage <= 3) {
+    minimumMoves = 10 + stage * 2;
+  } else {
+    minimumMoves = Math.min(18 + (stage - 4) * 2, 28);
+  }
+
+  for (let attempt = 0; attempt < 200; attempt++) {
     const candidate = generateRandomLayout();
 
     if (!candidate) {
       continue;
     }
 
-    const solutionMoves = getMinimumSolutionMoves(candidate, 28);
+    const solutionMoves = getMinimumSolutionMoves(candidate, 40);
 
     if (solutionMoves !== null && solutionMoves >= minimumMoves) {
       generated = candidate;
@@ -328,8 +346,13 @@ function generateStage() {
     }
   }
 
-  // 万一100回やっても条件を満たさなかった場合
+  // ----------------------------------------------------------
+  // 万一生成できなかった場合
+  // ----------------------------------------------------------
+
   if (!generated) {
+    console.warn(`Stage ${stage}: difficulty condition not met`);
+
     generated = generateRandomLayout();
 
     if (!generated) {
@@ -338,6 +361,11 @@ function generateStage() {
   }
 
   blocks = generated;
+
+  // 現在のステージの初期配置を保存
+  initialBlocks = generated.map((block) => ({
+    ...block,
+  }));
 
   // 描画位置を初期化
   for (const block of blocks) {
@@ -460,8 +488,12 @@ function checkClear() {
     return;
   }
 
-  // 右端を越えたら脱出開始
-  if (target.row === 2 && target.x >= canvasSize - blockSize * 0.5) {
+  // ----------------------------------------------------------
+  // 赤ブロックが1マス分、出口の外へ出たら自動脱出
+  // ----------------------------------------------------------
+  const targetRight = target.x + target.length * blockSize;
+
+  if (target.row === 2 && targetRight >= canvasSize + blockSize) {
     startTargetExit(target);
   }
 }
@@ -477,18 +509,25 @@ function startTargetExit(target) {
 
   exitingTarget = true;
 
+  // クリア表示を出して操作をロック
+  gameCleared = true;
+
+  score += 100;
+  updateScore();
+
+  draw();
+
   const startX = target.x;
 
+  // 画面外まで脱出
   const targetX = canvasSize + blockSize * target.length + 40;
 
-  const duration = 300;
-
+  const duration = 350;
   const startTime = performance.now();
 
   function animate(time) {
     const progress = Math.min((time - startTime) / duration, 1);
 
-    // なめらかに加速・減速
     const eased = 1 - Math.pow(1 - progress, 3);
 
     target.x = startX + (targetX - startX) * eased;
@@ -498,19 +537,21 @@ function startTargetExit(target) {
     if (progress < 1) {
       exitAnimationId = requestAnimationFrame(animate);
     } else {
-      gameCleared = true;
-
-      score += 100;
-
-      updateScore();
-
       setTimeout(() => {
         stage++;
 
         updateStage();
 
+        // 新しいステージを生成
         generateStage();
-      }, 500);
+
+        // 新ステージ生成完了
+        exitingTarget = false;
+        gameCleared = false;
+        selectedBlock = null;
+
+        draw();
+      }, 400);
     }
   }
 
@@ -531,6 +572,27 @@ function updateScore() {
 
 function updateStage() {
   document.getElementById("stage").textContent = "Stage: " + stage;
+}
+
+// ============================================================
+// ステージリセット
+// ============================================================
+
+function resetStage() {
+  if (!gameStarted || gameCleared || exitingTarget) {
+    return;
+  }
+
+  // 初期配置を復元
+  blocks = initialBlocks.map((block) => ({
+    ...block,
+    x: block.col * blockSize,
+    y: block.row * blockSize,
+  }));
+
+  selectedBlock = null;
+
+  draw();
 }
 
 // ============================================================
@@ -634,9 +696,62 @@ function drawBlock(block) {
     height = block.length * blockSize - padding * 2;
   }
 
-  ctx.fillStyle = block.color;
-
   const radius = blockSize * 0.12;
+
+  // ----------------------------------------------------------
+  // ゴールブロック
+  // ----------------------------------------------------------
+
+  if (block.isTarget) {
+    // 本体
+    const gradient = ctx.createLinearGradient(x, y, x, y + height);
+
+    gradient.addColorStop(0, "#ff5a5a");
+    gradient.addColorStop(0.5, "#e53935");
+    gradient.addColorStop(1, "#b71c1c");
+
+    ctx.fillStyle = gradient;
+
+    roundRect(ctx, x, y, width, height, radius);
+    ctx.fill();
+
+    // 外側の白い枠
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = blockSize * 0.045;
+
+    roundRect(ctx, x, y, width, height, radius);
+    ctx.stroke();
+
+    // 内側の光沢
+    ctx.fillStyle = "rgba(255,255,255,0.22)";
+
+    if (block.direction === "horizontal") {
+      ctx.fillRect(x + 6, y + 6, Math.max(width - 12, 0), Math.max(height * 0.2, 0));
+    } else {
+      ctx.fillRect(x + 6, y + 6, Math.max(width * 0.2, 0), Math.max(height - 12, 0));
+    }
+
+    // 矢印
+    ctx.fillStyle = "#fff";
+
+    ctx.font = `bold ${blockSize * 0.32}px sans-serif`;
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.fillText("→", x + width / 2, y + height / 2);
+
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+
+    return;
+  }
+
+  // ----------------------------------------------------------
+  // 通常ブロック
+  // ----------------------------------------------------------
+
+  ctx.fillStyle = block.color;
 
   roundRect(ctx, x, y, width, height, radius);
 
@@ -649,21 +764,6 @@ function drawBlock(block) {
     ctx.fillRect(x + 5, y + 5, Math.max(width - 10, 0), Math.max(height * 0.22, 0));
   } else {
     ctx.fillRect(x + 5, y + 5, Math.max(width * 0.22, 0), Math.max(height - 10, 0));
-  }
-
-  // 赤ブロックの矢印
-  if (block.isTarget) {
-    ctx.fillStyle = "rgba(255,255,255,0.8)";
-
-    ctx.font = `${blockSize * 0.28}px sans-serif`;
-
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    ctx.fillText("→", x + width / 2, y + height / 2);
-
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
   }
 }
 
@@ -968,13 +1068,9 @@ function moveBlockSmoothly(block, desiredPosition, horizontal) {
   // ----------------------------------------------------------
 
   if (block.isTarget && horizontal && block.row === 2) {
-    const exitMax = canvasSize + blockSize * 2;
+    // 1マス分だけ出口の外までドラッグ可能
+    const exitMax = canvasSize + blockSize;
 
-    // 右側にブロックが存在していない場合のみ出口の外へ
-    // 移動できる。
-    //
-    // maxPosition が盤面内の障害物によって制限されている場合は
-    // その制限を維持する。
     if (maxPosition >= canvasSize - blockWidth) {
       maxPosition = exitMax;
     }
@@ -1092,6 +1188,14 @@ function resizeCanvas() {
 }
 
 window.addEventListener("resize", resizeCanvas);
+
+// ============================================================
+// リセットボタン
+// ============================================================
+
+document.getElementById("resetStageBtn").addEventListener("click", () => {
+  resetStage();
+});
 
 // ============================================================
 // スタートボタン

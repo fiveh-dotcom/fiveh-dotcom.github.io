@@ -1225,29 +1225,13 @@ canvas.addEventListener(
 );
 
 // canvas外で指を離してもドラッグを終了できるようにする
-document.addEventListener(
-  "touchend",
-  (e) => {
-    if (e.cancelable) {
-      e.preventDefault();
-    }
+document.addEventListener("touchend", () => {
+  endDrag();
+});
 
-    endDrag();
-  },
-  { passive: false },
-);
-
-document.addEventListener(
-  "touchcancel",
-  (e) => {
-    if (e.cancelable) {
-      e.preventDefault();
-    }
-
-    endDrag();
-  },
-  { passive: false },
-);
+document.addEventListener("touchcancel", () => {
+  endDrag();
+});
 
 // ============================================================
 // リセット確認ダイアログ

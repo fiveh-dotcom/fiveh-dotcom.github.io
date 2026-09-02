@@ -109,3 +109,48 @@
   font-size: 24px;
   font-weight: bold;
 }
+
+/* ============================================================
+   ゲーム生成中ローディング
+   ============================================================ */
+
+.game-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+
+  background: rgba(0, 0, 0, 0.75);
+
+  /* 下の画面を操作できないようにする */
+  touch-action: none;
+  user-select: none;
+}
+
+.game-loading-spinner {
+  width: 50px;
+  height: 50px;
+
+  border: 6px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+
+  animation: game-loading-spin 0.8s linear infinite;
+}
+
+.game-loading-text {
+  color: #fff;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+@keyframes game-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -104,3 +104,45 @@ function createPauseButton({ canToggle, isPaused, onPause, onResume }) {
     update,
   };
 }
+
+// ============================================================
+// ゲーム共通：ローディング表示
+// ============================================================
+
+let gameLoadingOverlay = null;
+
+function showGameLoading(message = "読み込み中…") {
+  // すでに表示されている場合は何もしない
+  if (gameLoadingOverlay) {
+    return;
+  }
+
+  // オーバーレイ
+  const overlay = document.createElement("div");
+  overlay.className = "game-loading-overlay";
+
+  // スピナー
+  const spinner = document.createElement("div");
+  spinner.className = "game-loading-spinner";
+
+  // テキスト
+  const text = document.createElement("div");
+  text.className = "game-loading-text";
+  text.textContent = message;
+
+  overlay.appendChild(spinner);
+  overlay.appendChild(text);
+
+  document.body.appendChild(overlay);
+
+  gameLoadingOverlay = overlay;
+}
+
+function hideGameLoading() {
+  if (!gameLoadingOverlay) {
+    return;
+  }
+
+  gameLoadingOverlay.remove();
+  gameLoadingOverlay = null;
+}

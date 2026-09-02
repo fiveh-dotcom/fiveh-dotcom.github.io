@@ -404,8 +404,24 @@ function generateStage() {
     block.x = block.col * blockSize;
     block.y = block.row * blockSize;
   }
+}
 
-  draw();
+// ============================================================
+// ステージ生成（ローディング表示付き）
+// ============================================================
+
+function generateStageWithLoading() {
+  showGameLoading("ステージ生成中…");
+
+  // ローディング画面を一度描画させてから
+  // 重いステージ生成処理を開始
+  setTimeout(() => {
+    generateStage();
+
+    hideGameLoading();
+
+    draw();
+  }, 50);
 }
 
 // ============================================================
@@ -574,15 +590,11 @@ function startTargetExit(target) {
 
         updateStage();
 
-        // 新しいステージを生成
-        generateStage();
-
-        // 新ステージ生成完了
         exitingTarget = false;
         gameCleared = false;
         selectedBlock = null;
 
-        draw();
+        generateStageWithLoading();
       }, 400);
     }
   }
@@ -1250,8 +1262,13 @@ const resetDialog = createResetDialog({
 // ============================================================
 
 document.getElementById("startBtn").addEventListener("click", () => {
+  // ゲームクリア時は何もしない
+  if (gameCleared) {
+    return;
+  }
+
   // ゲーム中なら確認ダイアログを表示
-  if (gameStarted && !gameCleared) {
+  if (gameStarted) {
     resetDialog.show();
 
     return;
@@ -1273,7 +1290,7 @@ function startGame() {
   updateScore();
   updateStage();
 
-  generateStage();
+  generateStageWithLoading();
 }
 
 // ============================================================

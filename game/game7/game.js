@@ -413,15 +413,17 @@ function generateStage() {
 function generateStageWithLoading() {
   showGameLoading("ステージ生成中…");
 
-  // ローディング画面を一度描画させてから
-  // 重いステージ生成処理を開始
-  setTimeout(() => {
-    generateStage();
+  // ローディング画面を確実に描画させてから
+  // 重いステージ生成処理を開始するため、2回待つ
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      generateStage();
 
-    hideGameLoading();
+      hideGameLoading();
 
-    draw();
-  }, 50);
+      draw();
+    });
+  });
 }
 
 // ============================================================

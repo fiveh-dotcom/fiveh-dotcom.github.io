@@ -1222,7 +1222,7 @@ function resizeCanvas() {
 window.addEventListener("resize", resizeCanvas);
 
 // ============================================================
-// リセットボタン
+// ステージリセットボタン
 // ============================================================
 
 document.getElementById("resetStageBtn").addEventListener("click", () => {
@@ -1230,10 +1230,38 @@ document.getElementById("resetStageBtn").addEventListener("click", () => {
 });
 
 // ============================================================
+// リセット確認ダイアログ
+// ============================================================
+
+const resetDialog = createResetDialog({
+  // 「リセット」が押された
+  onConfirm: () => {
+    startGame();
+  },
+
+  // 「キャンセル」が押された
+  onCancel: () => {
+    // 何もしない
+  },
+});
+
+// ============================================================
 // スタートボタン
 // ============================================================
 
 document.getElementById("startBtn").addEventListener("click", () => {
+  // ゲーム中なら確認ダイアログを表示
+  if (gameStarted && !gameCleared) {
+    resetDialog.show();
+
+    return;
+  }
+
+  startGame();
+});
+
+// ゲーム開始・リセット処理
+function startGame() {
   score = 0;
   stage = 1;
 
@@ -1246,7 +1274,7 @@ document.getElementById("startBtn").addEventListener("click", () => {
   updateStage();
 
   generateStage();
-});
+}
 
 // ============================================================
 // 初期表示

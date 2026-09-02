@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
     <title>ブロック崩し</title>
+    <link rel="stylesheet" href="../common/game-common.css" />
     <style>
       body {
         padding: 0 10px;
@@ -50,30 +51,6 @@
         margin: 15px;
         cursor: pointer;
       }
-
-      #pauseBtn.small-icon {
-        font-size: 13px;
-      }
-
-      #pauseOverlay {
-        position: fixed;
-        inset: 0;
-
-        width: 100vw;
-        height: 100vh;
-
-        background: rgba(80, 80, 80, 0.7);
-
-        display: none;
-        align-items: center;
-        justify-content: center;
-
-        z-index: 10000;
-      }
-
-      #pauseOverlay.active {
-        display: flex;
-      }
     </style>
   </head>
   <body>
@@ -81,16 +58,8 @@
     <div class="ui-bar"><div id="score">Score: 0</div></div>
     <canvas id="gameCanvas"></canvas>
     <button id="startBtn">ゲームスタート</button>
-    <button
-      id="pauseBtn"
-      style="position: fixed; bottom: 10px; right: 10px; z-index: 10001; width: 30px; height: 25px"
-      aria-label="一時停止"
-    >
-      ⏸
-    </button>
 
-    <div id="pauseOverlay"></div>
-
+    <script src="../common/game-common.js"></script>
     <script src="game.js"></script>
   </body>
 </html>

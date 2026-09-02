@@ -48,6 +48,7 @@ let gameStarted = false;
 let gameOver = false;
 let gameCleared = false;
 let paused = false;
+let pausedBeforeReset = false;
 
 const shapes = {
   I: [[1, 1, 1, 1]],
@@ -464,8 +465,41 @@ function gameLoop(timeStamp) {
   requestAnimationFrame(gameLoop);
 }
 
+// リセット確認ダイアログ
+const resetDialog = createResetDialog({
+  // 「リセット」が押された
+  onConfirm: () => {
+    startGame();
+  },
+
+  // 「キャンセル」が押された
+  onCancel: () => {
+    paused = pausedBeforeReset;
+
+    // 確認中に経過した時間を落下判定に含めない
+    lastTime = performance.now();
+  },
+});
+
 // スタートボタン
 document.getElementById("startBtn").addEventListener("click", () => {
+  // ゲーム中なら確認ダイアログを表示
+  if (gameStarted && !gameOver && !gameCleared) {
+    pausedBeforeReset = paused;
+
+    // 確認中はゲームを停止
+    paused = true;
+
+    resetDialog.show();
+
+    return;
+  }
+
+  startGame();
+});
+
+// ゲーム開始・リセット処理
+function startGame() {
   grid = Array.from({ length: rows }, () => Array(cols).fill(null));
   score = 0;
   document.getElementById("score").innerText = "Score: 0";
@@ -474,7 +508,7 @@ document.getElementById("startBtn").addEventListener("click", () => {
   gameOver = false;
   gameCleared = false;
   paused = false;
-  document.getElementById("pauseBtn").textContent = "⏸";
+  pauseControl.update();
 
   nextPieces = [];
   generateNextPieces();
@@ -488,22 +522,22 @@ document.getElementById("startBtn").addEventListener("click", () => {
   // ブロックが二段目から落ちるように見える
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
-});
+}
 
 // 一時停止ボタン
-document.getElementById("pauseBtn").addEventListener("click", () => {
-  if (!gameStarted || gameOver) return;
+const pauseControl = createPauseButton({
+  canToggle: () => gameStarted && !gameOver,
 
-  paused = !paused;
+  isPaused: () => paused,
 
-  if (paused) {
-    pauseBtn.textContent = "▶";
-    pauseBtn.classList.add("small-icon");
-    document.getElementById("pauseOverlay").classList.add("active");
-  } else {
-    pauseBtn.textContent = "⏸";
-    pauseBtn.classList.remove("small-icon");
-    document.getElementById("pauseOverlay").classList.remove("active");
+  onPause: () => {
+    paused = true;
+  },
+
+  onResume: () => {
+    paused = false;
+
+    // 一時停止中の時間を落下判定に含めない
     lastTime = performance.now();
-  }
+  },
 });

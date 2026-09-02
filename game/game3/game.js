@@ -38,6 +38,7 @@ let gameStarted = false;
 let gameOver = false;
 let gameCleared = false;
 let paused = false;
+let pausedBeforeReset = false;
 
 function createBlocks() {
   blocks = [];
@@ -405,8 +406,41 @@ canvas.addEventListener("touchcancel", () => {
   isDragging = false;
 });
 
+// リセット確認ダイアログ
+const resetDialog = createResetDialog({
+  // 「リセット」が押された
+  onConfirm: () => {
+    startGame();
+  },
+
+  // 「キャンセル」が押された
+  onCancel: () => {
+    paused = pausedBeforeReset;
+
+    // アニメーションを再開
+    draw();
+  },
+});
+
 // スタートボタン
 document.getElementById("startBtn").addEventListener("click", () => {
+  // ゲーム中なら確認ダイアログを表示
+  if (gameStarted && !gameOver && !gameCleared) {
+    pausedBeforeReset = paused;
+
+    // 確認中はゲームを停止
+    paused = true;
+
+    resetDialog.show();
+
+    return;
+  }
+
+  startGame();
+});
+
+// ゲーム開始・リセット処理
+function startGame() {
   if (animationId) cancelAnimationFrame(animationId);
 
   // 複数ボール初期化
@@ -430,31 +464,29 @@ document.getElementById("startBtn").addEventListener("click", () => {
   gameOver = false;
   gameCleared = false;
   paused = false;
-  document.getElementById("pauseBtn").textContent = "⏸";
+  pauseControl.update();
   createBlocks();
   items.length = 0; // アイテムもリセット
   draw();
-});
+}
 
 // 一時停止ボタン
-document.getElementById("pauseBtn").addEventListener("click", () => {
-  if (!gameStarted || gameOver) return;
+const pauseControl = createPauseButton({
+  canToggle: () => gameStarted && !gameOver,
 
-  paused = !paused;
+  isPaused: () => paused,
 
-  if (paused) {
-    pauseBtn.textContent = "▶";
-    pauseBtn.classList.add("small-icon");
-    document.getElementById("pauseOverlay").classList.add("active");
+  onPause: () => {
+    paused = true;
 
     // 現在のアニメーションを停止
     cancelAnimationFrame(animationId);
-  } else {
-    pauseBtn.textContent = "⏸";
-    pauseBtn.classList.remove("small-icon");
-    document.getElementById("pauseOverlay").classList.remove("active");
+  },
+
+  onResume: () => {
+    paused = false;
 
     // アニメーションを再開
     draw();
-  }
+  },
 });

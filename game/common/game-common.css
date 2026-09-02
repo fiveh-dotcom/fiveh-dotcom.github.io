@@ -1,0 +1,111 @@
+/* ============================================================
+   リセット確認ダイアログ
+   ============================================================ */
+
+#resetOverlay {
+  position: fixed;
+  inset: 0;
+
+  width: 100vw;
+  height: 100vh;
+
+  background: rgba(0, 0, 0, 0.7);
+
+  display: none;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 20000;
+}
+
+#resetOverlay.active {
+  display: flex;
+}
+
+#resetDialog {
+  width: calc(100% - 40px);
+  max-width: 320px;
+
+  padding: 25px 20px;
+
+  background: #333;
+  border: 1px solid #fff;
+  border-radius: 8px;
+
+  box-sizing: border-box;
+  text-align: center;
+}
+
+#resetMessage {
+  font-size: 18px;
+  margin-bottom: 25px;
+}
+
+#resetButtons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+#resetButtons button {
+  padding: 10px 18px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+#resetCancelBtn {
+  background: #555;
+  color: #fff;
+  border: 1px solid #aaa;
+}
+
+#resetConfirmBtn {
+  background: #fff;
+  color: #222;
+  border: 1px solid #fff;
+}
+
+/* ============================================================
+   一時停止
+   ============================================================ */
+
+#pauseBtn {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+
+  z-index: 10001;
+
+  width: 30px;
+  height: 25px;
+}
+
+#pauseBtn.small-icon {
+  font-size: 13px;
+}
+
+#pauseOverlay {
+  position: fixed;
+  inset: 0;
+
+  width: 100vw;
+  height: 100vh;
+
+  background: rgba(80, 80, 80, 0.7);
+
+  display: none;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 10000;
+}
+
+#pauseOverlay.active {
+  display: flex;
+}
+
+#pauseMessage {
+  color: #fff;
+  font-size: 24px;
+  font-weight: bold;
+}

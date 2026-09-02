@@ -352,7 +352,6 @@ function drawGameResult(title) {
 
 function endGame(result) {
   gameStarted = false;
-  paused = false;
 
   if (result === "clear") {
     gameOver = false;
@@ -931,8 +930,32 @@ rotateButtons.forEach((button, index) => {
   );
 });
 
+// リセット確認ダイアログ
+const resetDialog = createResetDialog({
+  // 「リセット」が押された
+  onConfirm: () => {
+    startGame();
+  },
+
+  // 「キャンセル」が押された
+  onCancel: () => {
+    // 何もしない
+  },
+});
+
 // スタートボタン
 document.getElementById("startBtn").addEventListener("click", () => {
+  // ゲーム中なら確認ダイアログを表示
+  if (gameStarted && !gameOver && !gameCleared) {
+    resetDialog.show();
+    return;
+  }
+
+  startGame();
+});
+
+// ゲーム開始・リセット処理
+function startGame() {
   score = 0;
   scoreElem.innerText = "Score: 0";
 
@@ -945,7 +968,7 @@ document.getElementById("startBtn").addEventListener("click", () => {
   generateBlocks();
   drawGrid();
   syncOverlay();
-});
+}
 
 /* ========================= */
 

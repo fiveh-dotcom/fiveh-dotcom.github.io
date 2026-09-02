@@ -25,6 +25,7 @@ let score = 0;
 let gameStarted = false;
 let gameOver = false;
 let paused = false;
+let pausedBeforeReset = false;
 
 let clearing = false;
 let clearAnimationId = null;
@@ -1178,7 +1179,8 @@ canvas.addEventListener("mousemove", (e) => {
   moveDrag(e.clientX);
 });
 
-canvas.addEventListener("mouseup", () => {
+// canvas外でマウスを離してもドラッグを終了できるようにする
+document.addEventListener("mouseup", () => {
   endDrag();
 });
 
@@ -1222,20 +1224,45 @@ canvas.addEventListener(
   { passive: false },
 );
 
-canvas.addEventListener("touchend", (e) => {
-  if (e.cancelable) {
-    e.preventDefault();
-  }
+// canvas外で指を離してもドラッグを終了できるようにする
+document.addEventListener(
+  "touchend",
+  (e) => {
+    if (e.cancelable) {
+      e.preventDefault();
+    }
 
-  endDrag();
-});
+    endDrag();
+  },
+  { passive: false },
+);
 
-canvas.addEventListener("touchcancel", (e) => {
-  if (e.cancelable) {
-    e.preventDefault();
-  }
+document.addEventListener(
+  "touchcancel",
+  (e) => {
+    if (e.cancelable) {
+      e.preventDefault();
+    }
 
-  endDrag();
+    endDrag();
+  },
+  { passive: false },
+);
+
+// ============================================================
+// リセット確認ダイアログ
+// ============================================================
+
+const resetDialog = createResetDialog({
+  // 「リセット」が押された
+  onConfirm: () => {
+    startGame();
+  },
+
+  // 「キャンセル」が押された
+  onCancel: () => {
+    paused = pausedBeforeReset;
+  },
 });
 
 // ============================================================
@@ -1243,6 +1270,18 @@ canvas.addEventListener("touchcancel", (e) => {
 // ============================================================
 
 document.getElementById("startBtn").addEventListener("click", () => {
+  // ゲーム中なら確認ダイアログを表示
+  if (gameStarted && !gameOver) {
+    pausedBeforeReset = paused;
+
+    // 確認中はゲームを停止
+    paused = true;
+
+    resetDialog.show();
+
+    return;
+  }
+
   startGame();
 });
 

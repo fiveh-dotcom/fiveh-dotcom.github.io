@@ -21,6 +21,7 @@ let nextBlocks = [];
 let availableNumbers = [2, 4, 8];
 let highestUnlockedNumber = 8;
 let mergeLock = false; // 合体中フラグ
+let isMergeAnimating = false; // マージアニメーション中フラグ
 
 const colors = {
   2: "#ff6666",
@@ -146,6 +147,11 @@ function endGame(result) {
   gameStarted = false;
   paused = false;
 
+  if (gameLoopId !== null) {
+    cancelAnimationFrame(gameLoopId);
+    gameLoopId = null;
+  }
+
   if (result === "clear") {
     gameOver = false;
     gameCleared = true;
@@ -168,24 +174,31 @@ function drawGrid() {
   drawNext();
 }
 
-function drawCell(x, y, value) {
-  const px = Math.round(x * blockSize);
-  const py = Math.round(y * blockSize);
-  const size = blockSize - 2;
+function drawCell(x, y, value, scale = 1) {
+  const centerX = (x + 0.5) * blockSize;
+  const centerY = (y + 0.5) * blockSize;
+
+  const size = (blockSize - 2) * scale;
+  const px = centerX - size / 2;
+  const py = centerY - size / 2;
+
   ctx.fillStyle = getColor(value);
-  ctx.fillRect(px, py, blockSize - 2, blockSize - 2);
+  ctx.fillRect(px, py, size, size);
+
   ctx.fillStyle = "#000";
-  ctx.font = `bold ${Math.round(blockSize * 0.45)}px 'Poppins', sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
+
   const text = formatNumber(value);
-  drawCenteredText(ctx, text, px + size / 2, py + size / 2, size * 0.8, size * 0.5);
+
+  drawCenteredText(ctx, text, centerX, centerY, size * 0.8, size * 0.5);
 
   // 1024以上はキラキラエフェクト
   if (value >= 1024) {
     ctx.strokeStyle = "rgba(255,255,255,0.6)";
     ctx.lineWidth = 2;
-    ctx.strokeRect(x * blockSize + 2, y * blockSize + 2, blockSize - 6, blockSize - 6);
+
+    ctx.strokeRect(px + 2, py + 2, size - 4, size - 4);
   }
 }
 
@@ -246,59 +259,92 @@ function drawNext() {
 
 // 移動判定
 function canMove(x, y) {
-  return x >= 0 && x < cols && y < rows && !grid[y][x];
+  return x >= 0 && x < cols && y >= 0 && y < rows && !grid[y][x];
 }
 
+// ============================================================
 // 落下
+// ============================================================
+
 function drop() {
   if (!currentBlock || mergeLock || paused) return;
 
   const nextX = currentBlock.x;
   const nextY = currentBlock.y + 1;
 
+  // ----------------------------------------------------------
   // 下に進める
+  // ----------------------------------------------------------
+
   if (canMove(nextX, nextY)) {
     currentBlock.y++;
     return;
   }
 
+  // ----------------------------------------------------------
   // 下のタイルと合体できる場合
+  // ----------------------------------------------------------
+
   if (nextY < rows && grid[nextY][nextX] === currentBlock.value) {
-    grid[nextY][nextX] *= 2;
+    const movingValue = currentBlock.value;
 
-    score += grid[nextY][nextX];
+    // 落下中ブロックの位置
+    const fromX = currentBlock.x;
+    const fromY = currentBlock.y;
 
-    if (grid[nextY][nextX] > highestUnlockedNumber) {
-      highestUnlockedNumber = grid[nextY][nextX];
-
-      if (!availableNumbers.includes(grid[nextY][nextX])) {
-        availableNumbers.push(grid[nextY][nextX]);
-      }
-    }
+    // 衝突する既存タイルの位置
+    const toX = nextX;
+    const toY = nextY;
 
     currentBlock = null;
-
     mergeLock = true;
 
-    mergeAndFall(nextX, nextY).then(() => {
-      mergeLock = false;
+    // まだgridには落下中ブロックを入れない。
+    // 2つのタイルをアニメーションさせてから実際にマージする。
+    animateMerge(fromX, fromY, toX, toY, movingValue).then(() => {
+      // 実際にマージ
+      const mergedValue = movingValue * 2;
 
-      newBlock();
+      grid[toY][toX] = mergedValue;
 
-      if (!canMove(currentBlock.x, currentBlock.y)) {
-        endGame("over");
+      score += mergedValue;
+
+      // 新しい数字を解禁
+      if (mergedValue > highestUnlockedNumber) {
+        highestUnlockedNumber = mergedValue;
+
+        if (!availableNumbers.includes(mergedValue)) {
+          availableNumbers.push(mergedValue);
+        }
       }
+
+      // できたタイルを起点に連鎖処理
+      mergeAndFall(toX, toY).then(() => {
+        mergeLock = false;
+
+        newBlock();
+
+        if (!canMove(currentBlock.x, currentBlock.y)) {
+          endGame("over");
+        }
+      });
     });
 
     return;
   }
 
+  // ----------------------------------------------------------
   // 合体できない場合は現在位置に置く
+  // ----------------------------------------------------------
+
+  const placedX = currentBlock.x;
+  const placedY = currentBlock.y;
+
   placeBlock();
 
   mergeLock = true;
 
-  mergeAndFall(currentBlock.x, currentBlock.y).then(() => {
+  mergeAndFall(placedX, placedY).then(() => {
     mergeLock = false;
 
     currentBlock = null;
@@ -314,18 +360,34 @@ function placeBlock() {
   grid[currentBlock.y][currentBlock.x] = currentBlock.value;
 }
 
-// 複数合体 + 下まで落下（アニメーション）
-async function mergeAndFall() {
+// ============================================================
+// 複数合体 + 下まで落下
+// 直前に合体してできたタイルを優先して連鎖させる
+// ============================================================
+
+async function mergeAndFall(startX = null, startY = null) {
+  // 直前にマージしてできたタイル
+  let priorityTile = null;
+
+  if (startX !== null && startY !== null && grid[startY] && grid[startY][startX] != null) {
+    priorityTile = {
+      x: startX,
+      y: startY,
+      value: grid[startY][startX],
+    };
+  }
+
   while (true) {
-    let merged = false;
+    let mergeTarget = null;
 
-    // 合体できる組み合わせを1つ探す
-    for (let row = rows - 1; row >= 0 && !merged; row--) {
-      for (let col = 0; col < cols && !merged; col++) {
-        if (!grid[row][col]) continue;
+    // ========================================================
+    // ① 直前にマージしてできたタイルを最優先
+    // ========================================================
 
-        const val = grid[row][col];
+    if (priorityTile) {
+      const { x, y, value } = priorityTile;
 
+      if (y >= 0 && y < rows && x >= 0 && x < cols && grid[y][x] === value) {
         const dirs = [
           [0, 1], // 下
           [1, 0], // 右
@@ -334,73 +396,326 @@ async function mergeAndFall() {
         ];
 
         for (const [dx, dy] of dirs) {
-          const nx = col + dx;
-          const ny = row + dy;
+          const nx = x + dx;
+          const ny = y + dy;
 
-          if (nx >= 0 && nx < cols && ny >= 0 && ny < rows && grid[ny][nx] === val) {
-            // 合体アニメーション
-            await animateMerge(col, row, nx, ny);
+          if (nx >= 0 && nx < cols && ny >= 0 && ny < rows && grid[ny][nx] === value) {
+            mergeTarget = {
+              fx: x,
+              fy: y,
+              tx: nx,
+              ty: ny,
+            };
 
-            // 合体
-            grid[row][col] = val * 2;
-            grid[ny][nx] = null;
-
-            score += grid[row][col];
-
-            // 新しい数字を解禁
-            if (grid[row][col] > highestUnlockedNumber) {
-              highestUnlockedNumber = grid[row][col];
-
-              if (!availableNumbers.includes(grid[row][col])) {
-                availableNumbers.push(grid[row][col]);
-              }
-            }
-
-            merged = true;
             break;
           }
         }
       }
+
+      priorityTile = null;
     }
 
-    // 合体した場合は、まず盤面を落下させる
-    if (merged) {
-      for (let col = 0; col < cols; col++) {
-        for (let row = rows - 2; row >= 0; row--) {
-          if (grid[row][col] && !grid[row + 1][col]) {
-            grid[row + 1][col] = grid[row][col];
-            grid[row][col] = null;
+    // ========================================================
+    // ② 通常のマージ探索
+    //
+    // 下の行 → 上の行
+    // 左 → 右
+    // ========================================================
+
+    if (!mergeTarget) {
+      for (let row = rows - 1; row >= 0 && !mergeTarget; row--) {
+        for (let col = 0; col < cols && !mergeTarget; col++) {
+          if (!grid[row][col]) continue;
+
+          const val = grid[row][col];
+
+          const dirs = [
+            [0, 1], // 下
+            [1, 0], // 右
+            [0, -1], // 上
+            [-1, 0], // 左
+          ];
+
+          for (const [dx, dy] of dirs) {
+            const nx = col + dx;
+            const ny = row + dy;
+
+            if (nx >= 0 && nx < cols && ny >= 0 && ny < rows && grid[ny][nx] === val) {
+              mergeTarget = {
+                fx: col,
+                fy: row,
+                tx: nx,
+                ty: ny,
+              };
+
+              break;
+            }
           }
         }
       }
-
-      drawGrid();
-      await sleep(50);
-
-      // 最初からもう一度合体を探す
-      continue;
     }
 
-    // 合体できなくなったら終了
-    break;
+    // ========================================================
+    // マージできなければ終了
+    // ========================================================
+
+    if (!mergeTarget) {
+      break;
+    }
+
+    const { fx, fy, tx, ty } = mergeTarget;
+
+    const val = grid[fy][fx];
+    const mergedValue = val * 2;
+
+    // ========================================================
+    // マージアニメーション
+    // ========================================================
+
+    await animateMerge(fx, fy, tx, ty, val);
+
+    // ========================================================
+    // 実際にマージ
+    // ========================================================
+
+    grid[fy][fx] = mergedValue;
+    grid[ty][tx] = null;
+
+    score += mergedValue;
+
+    // ========================================================
+    // 新しい数字を解禁
+    // ========================================================
+
+    if (mergedValue > highestUnlockedNumber) {
+      highestUnlockedNumber = mergedValue;
+
+      if (!availableNumbers.includes(mergedValue)) {
+        availableNumbers.push(mergedValue);
+      }
+    }
+
+    // ========================================================
+    // 今作ったタイルを次のマージの最優先にする
+    // ========================================================
+
+    priorityTile = {
+      x: fx,
+      y: fy,
+      value: mergedValue,
+    };
+
+    // ========================================================
+    // 重力
+    // ========================================================
+
+    applyGravity();
+
+    drawGrid();
+
+    await sleep(80);
+
+    // ========================================================
+    // 重力後の位置を探す
+    //
+    // 同じ列を優先して探す
+    // ========================================================
+
+    priorityTile = findPriorityTile(mergedValue, fx, fy);
   }
+}
+
+// ============================================================
+// 重力
+// ============================================================
+
+function applyGravity() {
+  for (let col = 0; col < cols; col++) {
+    let writeRow = rows - 1;
+
+    for (let row = rows - 1; row >= 0; row--) {
+      if (grid[row][col] !== null) {
+        grid[writeRow][col] = grid[row][col];
+
+        if (writeRow !== row) {
+          grid[row][col] = null;
+        }
+
+        writeRow--;
+      }
+    }
+
+    while (writeRow >= 0) {
+      grid[writeRow][col] = null;
+      writeRow--;
+    }
+  }
+}
+
+// ============================================================
+// 重力後の「直前にマージしたタイル」を探す
+// ============================================================
+
+function findPriorityTile(value, preferredX, preferredY) {
+  // ========================================================
+  // ① 元の位置にまだあるなら、それが確実に直前のタイル
+  // ========================================================
+
+  if (
+    preferredY >= 0 &&
+    preferredY < rows &&
+    preferredX >= 0 &&
+    preferredX < cols &&
+    grid[preferredY][preferredX] === value
+  ) {
+    return {
+      x: preferredX,
+      y: preferredY,
+      value: value,
+    };
+  }
+
+  // ========================================================
+  // ② 重力で下に移動した可能性があるので、
+  //    同じ列から探す
+  // ========================================================
+
+  for (let row = rows - 1; row >= 0; row--) {
+    if (grid[row][preferredX] === value) {
+      return {
+        x: preferredX,
+        y: row,
+        value: value,
+      };
+    }
+  }
+
+  // ========================================================
+  // ③ 同じ列にない場合は、元の位置から近いものを探す
+  // ========================================================
+
+  let best = null;
+  let bestDistance = Infinity;
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      if (grid[row][col] !== value) continue;
+
+      const distance = Math.abs(col - preferredX) + Math.abs(row - preferredY);
+
+      if (distance < bestDistance) {
+        bestDistance = distance;
+
+        best = {
+          x: col,
+          y: row,
+          value: value,
+        };
+      }
+    }
+  }
+
+  return best;
 }
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// アニメーション
-async function animateMerge(fx, fy, tx, ty) {
-  const steps = 10;
-  const val = grid[fy][fx];
-  for (let i = 1; i <= steps; i++) {
+// ============================================================
+// マージアニメーション
+//
+// ① 2つのタイルが近づく
+// ② 接触直前に少し縮む
+// ③ 合体
+// ④ 合体後のタイルがポンッと拡大
+// ============================================================
+
+async function animateMerge(fx, fy, tx, ty, val) {
+  isMergeAnimating = true;
+
+  const duration = 220;
+  const startTime = performance.now();
+
+  const centerX = (fx + tx) / 2;
+  const centerY = (fy + ty) / 2;
+
+  function easeInOut(t) {
+    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  }
+
+  // ==========================================================
+  // ① 2つのタイルが近づく
+  // ==========================================================
+
+  while (true) {
+    const elapsed = performance.now() - startTime;
+    const t = Math.min(elapsed / duration, 1);
+
+    const eased = easeInOut(t);
+
+    const x1 = fx + (centerX - fx) * eased;
+    const y1 = fy + (centerY - fy) * eased;
+
+    const x2 = tx + (centerX - tx) * eased;
+    const y2 = ty + (centerY - ty) * eased;
+
+    // 接触直前に少し縮む
+    const scale = t > 0.7 ? 1 - ((t - 0.7) / 0.3) * 0.15 : 1;
+
     drawGrid();
-    const cx = fx + ((tx - fx) * i) / steps;
-    const cy = fy + ((ty - fy) * i) / steps;
-    drawCell(cx, cy, val);
+
+    // 元の2タイルを消す
+    ctx.clearRect(fx * blockSize - 4, fy * blockSize - 4, blockSize + 8, blockSize + 8);
+
+    ctx.clearRect(tx * blockSize - 4, ty * blockSize - 4, blockSize + 8, blockSize + 8);
+
+    // 2つのタイルを中央へ
+    drawCell(x1, y1, val, scale);
+    drawCell(x2, y2, val, scale);
+
+    if (t >= 1) break;
+
+    await new Promise((resolve) => {
+      requestAnimationFrame(resolve);
+    });
+  }
+
+  // ==========================================================
+  // ② 合体した瞬間
+  // ==========================================================
+
+  const popSteps = 8;
+
+  for (let i = 0; i <= popSteps; i++) {
+    const t = i / popSteps;
+
+    let scale;
+
+    if (t < 0.5) {
+      // 1 → 1.18
+      scale = 1 + 0.18 * (t / 0.5);
+    } else {
+      // 1.18 → 1
+      scale = 1.18 - 0.18 * ((t - 0.5) / 0.5);
+    }
+
+    drawGrid();
+
+    // 元の2タイルを消す
+    ctx.clearRect(fx * blockSize - 5, fy * blockSize - 5, blockSize + 10, blockSize + 10);
+
+    ctx.clearRect(tx * blockSize - 5, ty * blockSize - 5, blockSize + 10, blockSize + 10);
+
+    // 合体後の数字
+    drawCell(centerX, centerY, val * 2, scale);
+
     await sleep(20);
   }
+
+  isMergeAnimating = false;
+
+  drawGrid();
 }
 
 // キー操作
@@ -497,31 +812,55 @@ window.addEventListener("touchcancel", () => {
   dropCounter = 0;
 });
 
+// ============================================================
 // ゲームループ
-let lastTime = 0,
-  dropCounter = 0,
-  dropInterval = 500;
+// ============================================================
+
+let lastTime = 0;
+let dropCounter = 0;
+let dropInterval = 500;
+let gameLoopId = null;
+
 function gameLoop(time = performance.now()) {
-  if (!gameStarted) return;
+  if (!gameStarted) {
+    gameLoopId = null;
+    return;
+  }
 
   if (paused) {
     lastTime = time;
-    requestAnimationFrame(gameLoop);
+    gameLoopId = requestAnimationFrame(gameLoop);
     return;
   }
 
   const delta = time - lastTime;
   lastTime = time;
 
-  dropCounter += delta;
-  if (dropCounter > dropInterval) {
-    drop();
-    dropCounter = 0;
+  // ----------------------------------------------------------
+  // マージアニメーション中は落下させない
+  // ----------------------------------------------------------
+
+  if (!mergeLock) {
+    dropCounter += delta;
+
+    if (dropCounter > dropInterval) {
+      drop();
+      dropCounter = 0;
+    }
   }
 
-  drawGrid();
+  // ----------------------------------------------------------
+  // マージアニメーション中は
+  // animateMerge() 側が描画を担当する
+  // ----------------------------------------------------------
+
+  if (!isMergeAnimating) {
+    drawGrid();
+  }
+
   scoreElem.innerText = "Score: " + score;
-  requestAnimationFrame(gameLoop);
+
+  gameLoopId = requestAnimationFrame(gameLoop);
 }
 
 const resetDialog = createResetDialog({
@@ -541,6 +880,9 @@ const resetDialog = createResetDialog({
 
 // スタートボタン
 document.getElementById("startBtn").addEventListener("click", () => {
+  // マージ中は操作しない
+  if (mergeLock) return;
+
   // ゲーム中なら確認ダイアログを表示
   if (gameStarted && !gameOver && !gameCleared) {
     pausedBeforeReset = paused;
@@ -558,28 +900,43 @@ document.getElementById("startBtn").addEventListener("click", () => {
 
 // ゲーム開始・リセット処理
 function startGame() {
+  // 既存のゲームループを停止
+  if (gameLoopId !== null) {
+    cancelAnimationFrame(gameLoopId);
+    gameLoopId = null;
+  }
+
   score = 0;
+
+  mergeLock = false;
+  isMergeAnimating = false;
 
   availableNumbers = [2, 4, 8];
   highestUnlockedNumber = 8;
 
   initGrid();
+
   nextBlocks = [];
-  newBlock(); // currentBlock.y = 0
+  newBlock();
+
   gameStarted = true;
-  document.getElementById("startBtn").textContent = "ゲームリセット";
   gameOver = false;
   gameCleared = false;
   paused = false;
+
+  document.getElementById("startBtn").textContent = "ゲームリセット";
+
   pauseControl.update();
-  dropCounter = 0; // ここが重要：最初は落下カウンター0に
-  lastTime = performance.now(); // ここもリセット
+
+  dropCounter = 0;
+  lastTime = performance.now();
+
   gameLoop();
 }
 
 // 一時停止ボタン
 const pauseControl = createPauseButton({
-  canToggle: () => gameStarted && !gameOver,
+  canToggle: () => gameStarted && !gameOver && !mergeLock,
 
   isPaused: () => paused,
 

@@ -745,12 +745,18 @@ function drawBlock(block) {
   const radius = blockSize * 0.12;
 
   // ----------------------------------------------------------
-  // ゴールブロック
+  // ゴールブロック（車）
   // ----------------------------------------------------------
 
   if (block.isTarget) {
-    // 本体
-    const gradient = ctx.createLinearGradient(x, y, x, y + height);
+    // ========================================================
+    // 車体
+    // ========================================================
+
+    const bodyY = y + height * 0.18;
+    const bodyH = height * 0.64;
+
+    const gradient = ctx.createLinearGradient(x, bodyY, x, bodyY + bodyH);
 
     gradient.addColorStop(0, "#ff5a5a");
     gradient.addColorStop(0.5, "#e53935");
@@ -758,37 +764,134 @@ function drawBlock(block) {
 
     ctx.fillStyle = gradient;
 
-    roundRect(ctx, x, y, width, height, radius);
+    roundRect(ctx, x, bodyY, width, bodyH, radius * 0.7);
+
     ctx.fill();
 
+    // ========================================================
     // 外側の白い枠
+    // ========================================================
+
     ctx.strokeStyle = "#fff";
     ctx.lineWidth = blockSize * 0.045;
 
-    roundRect(ctx, x, y, width, height, radius);
+    roundRect(ctx, x, bodyY, width, bodyH, radius * 0.7);
+
     ctx.stroke();
 
-    // 内側の光沢
-    ctx.fillStyle = "rgba(255,255,255,0.22)";
+    // ========================================================
+    // 窓
+    // ========================================================
+
+    ctx.fillStyle = "#bde8f7";
 
     if (block.direction === "horizontal") {
-      ctx.fillRect(x + 6, y + 6, Math.max(width - 12, 0), Math.max(height * 0.2, 0));
-    } else {
-      ctx.fillRect(x + 6, y + 6, Math.max(width * 0.2, 0), Math.max(height - 12, 0));
+      const windowY = y + height * 0.29;
+      const windowH = height * 0.25;
+
+      // 後方側の窓
+      roundRect(ctx, x + width * 0.18, windowY, width * 0.27, windowH, radius * 0.3);
+
+      ctx.fill();
+
+      // 前方側の窓
+      roundRect(ctx, x + width * 0.55, windowY, width * 0.27, windowH, radius * 0.3);
+
+      ctx.fill();
+
+      // ======================================================
+      // 窓の光沢
+      // ======================================================
+
+      ctx.fillStyle = "rgba(255,255,255,0.25)";
+
+      ctx.fillRect(x + width * 0.21, windowY + height * 0.04, width * 0.2, height * 0.045);
+
+      ctx.fillRect(x + width * 0.58, windowY + height * 0.04, width * 0.2, height * 0.045);
     }
 
-    // 矢印
-    ctx.fillStyle = "#fff";
+    // ========================================================
+    // 前方（右側）
+    // ========================================================
 
-    ctx.font = `bold ${blockSize * 0.32}px sans-serif`;
+    // ヘッドライト
+    ctx.fillStyle = "#fff4a3";
 
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    roundRect(ctx, x + width * 0.925, y + height * 0.34, width * 0.055, height * 0.16, radius * 0.25);
 
-    ctx.fillText("→", x + width / 2, y + height / 2);
+    ctx.fill();
 
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
+    // ヘッドライトの中央
+    ctx.fillStyle = "#ffffff";
+
+    ctx.beginPath();
+
+    ctx.arc(x + width * 0.953, y + height * 0.42, width * 0.012, 0, Math.PI * 2);
+
+    ctx.fill();
+
+    // ========================================================
+    // 後方（左側）
+    // ========================================================
+
+    // テールライト
+    ctx.fillStyle = "#ff7777";
+
+    roundRect(ctx, x + width * 0.02, y + height * 0.34, width * 0.055, height * 0.16, radius * 0.25);
+
+    ctx.fill();
+
+    // テールライトの明るい部分
+    ctx.fillStyle = "#ffb0b0";
+
+    ctx.beginPath();
+
+    ctx.arc(x + width * 0.047, y + height * 0.42, width * 0.012, 0, Math.PI * 2);
+
+    ctx.fill();
+
+    // ========================================================
+    // タイヤ
+    // ========================================================
+
+    const tireRadius = blockSize * 0.105;
+    const tireY = y + height * 0.82;
+
+    ctx.fillStyle = "#222";
+
+    // 後輪
+    ctx.beginPath();
+
+    ctx.arc(x + width * 0.23, tireY, tireRadius, 0, Math.PI * 2);
+
+    ctx.fill();
+
+    // 前輪
+    ctx.beginPath();
+
+    ctx.arc(x + width * 0.77, tireY, tireRadius, 0, Math.PI * 2);
+
+    ctx.fill();
+
+    // ========================================================
+    // ホイール
+    // ========================================================
+
+    ctx.fillStyle = "#aaa";
+
+    const wheelRadius = tireRadius * 0.42;
+
+    ctx.beginPath();
+
+    ctx.arc(x + width * 0.23, tireY, wheelRadius, 0, Math.PI * 2);
+
+    ctx.fill();
+
+    ctx.beginPath();
+
+    ctx.arc(x + width * 0.77, tireY, wheelRadius, 0, Math.PI * 2);
+
+    ctx.fill();
 
     return;
   }

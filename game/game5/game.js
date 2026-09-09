@@ -666,9 +666,9 @@ async function animateMerge(fx, fy, tx, ty, val) {
     drawGrid();
 
     // 元の2タイルを消す
-    ctx.clearRect(fx * blockSize - 4, fy * blockSize - 4, blockSize + 8, blockSize + 8);
+    ctx.clearRect(fx * blockSize, fy * blockSize, blockSize, blockSize);
 
-    ctx.clearRect(tx * blockSize - 4, ty * blockSize - 4, blockSize + 8, blockSize + 8);
+    ctx.clearRect(tx * blockSize, ty * blockSize, blockSize, blockSize);
 
     // 2つのタイルを中央へ
     drawCell(x1, y1, val, scale);
@@ -703,9 +703,9 @@ async function animateMerge(fx, fy, tx, ty, val) {
     drawGrid();
 
     // 元の2タイルを消す
-    ctx.clearRect(fx * blockSize - 5, fy * blockSize - 5, blockSize + 10, blockSize + 10);
+    ctx.clearRect(fx * blockSize, fy * blockSize, blockSize, blockSize);
 
-    ctx.clearRect(tx * blockSize - 5, ty * blockSize - 5, blockSize + 10, blockSize + 10);
+    ctx.clearRect(tx * blockSize, ty * blockSize, blockSize, blockSize);
 
     // 合体後の数字
     drawCell(centerX, centerY, val * 2, scale);
@@ -730,86 +730,195 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-// スマホ操作（スワイプで操作）
+// ============================================================
+// スマホ操作（Pointer Events）
+// ============================================================
+
 let isTouching = false;
 let touchPrevX = 0;
 let touchPrevY = 0;
+let activePointerId = null;
 
-canvas.addEventListener("touchstart", (e) => {
-  if (!gameStarted || !currentBlock || mergeLock || paused) return;
+// ============================================================
+// タッチ開始
+// ============================================================
 
-  const touch = e.touches[0];
-  const rect = canvas.getBoundingClientRect();
-
-  // Canvas内でタッチしたか確認
-  if (
-    touch.clientX < rect.left ||
-    touch.clientX > rect.right ||
-    touch.clientY < rect.top ||
-    touch.clientY > rect.bottom
-  ) {
+canvas.addEventListener("pointerdown", (e) => {
+  // ゲーム中でなければ操作しない
+  if (!gameStarted || !currentBlock || mergeLock || paused) {
     return;
   }
 
-  // Canvas内なら現在のタイルをつかむ
-  touchPrevX = touch.clientX;
-  touchPrevY = touch.clientY;
-  isTouching = true;
-});
-
-function clampTouchToCanvas(touch) {
-  const rect = canvas.getBoundingClientRect();
-  return {
-    x: Math.max(rect.left, Math.min(touch.clientX, rect.right)),
-    y: Math.max(rect.top, Math.min(touch.clientY, rect.bottom)),
-  };
-}
-
-canvas.addEventListener("touchmove", (e) => {
-  e.preventDefault(); // スクロール防止
-  if (!isTouching || !currentBlock || paused) return;
-
-  const t = clampTouchToCanvas(e.touches[0]);
-  const dx = t.x - touchPrevX;
-  const dy = t.y - touchPrevY;
-
-  // 横移動（1マスずつブロックを追従）
-  if (Math.abs(dx) > blockSize / 2) {
-    if (dx > 0 && canMove(currentBlock.x + 1, currentBlock.y)) currentBlock.x++;
-    else if (dx < 0 && canMove(currentBlock.x - 1, currentBlock.y)) currentBlock.x--;
-    touchPrevX = t.x; // 移動量リセット
+  // スマホ・タブレットのタッチ操作だけを対象
+  if (e.pointerType !== "touch") {
+    return;
   }
 
-  // 下方向は1段ずつ落下
+  const rect = canvas.getBoundingClientRect();
+
+  // ----------------------------------------------------------
+  // canvas外からのタップは完全に無視
+  // ----------------------------------------------------------
+
+  if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+    return;
+  }
+
+  // ----------------------------------------------------------
+  // canvas内でタッチ開始
+  // ----------------------------------------------------------
+
+  isTouching = true;
+  activePointerId = e.pointerId;
+
+  touchPrevX = e.clientX;
+  touchPrevY = e.clientY;
+
+  // この指の操作をcanvasが引き続き受け取る
+  // 指がcanvas外へ出てもpointermoveを受け取れる
+  canvas.setPointerCapture(e.pointerId);
+
+  // ブラウザのスクロール・ジェスチャーを防止
+  e.preventDefault();
+});
+
+// ============================================================
+// タッチ移動
+// ============================================================
+
+canvas.addEventListener("pointermove", (e) => {
+  // 操作中でなければ何もしない
+  if (!isTouching) {
+    return;
+  }
+
+  // 操作中の指以外は無視
+  if (e.pointerId !== activePointerId) {
+    return;
+  }
+
+  if (!currentBlock || paused) {
+    return;
+  }
+
+  e.preventDefault();
+
+  // ----------------------------------------------------------
+  // 実際の指の移動量を取得
+  //
+  // canvas外に出てもPointer Captureによって
+  // ここにイベントが届く
+  // ----------------------------------------------------------
+
+  const dx = e.clientX - touchPrevX;
+  const dy = e.clientY - touchPrevY;
+
+  // ==========================================================
+  // 横移動
+  // ==========================================================
+
+  if (Math.abs(dx) > blockSize / 2) {
+    if (dx > 0 && canMove(currentBlock.x + 1, currentBlock.y)) {
+      currentBlock.x++;
+    } else if (dx < 0 && canMove(currentBlock.x - 1, currentBlock.y)) {
+      currentBlock.x--;
+    }
+
+    // 横方向の移動量をリセット
+    touchPrevX = e.clientX;
+  }
+
+  // ==========================================================
+  // 下方向
+  // ==========================================================
+
   if (dy > blockSize / 2) {
     drop();
-    touchPrevY = t.y;
+
+    // 縦方向の移動量をリセット
+    touchPrevY = e.clientY;
   }
 });
 
-window.addEventListener("touchend", (e) => {
-  if (!isTouching) return;
+// ============================================================
+// タッチ終了
+// ============================================================
 
+canvas.addEventListener("pointerup", (e) => {
+  // 操作中でなければ何もしない
+  if (!isTouching) {
+    return;
+  }
+
+  // 操作中の指以外は無視
+  if (e.pointerId !== activePointerId) {
+    return;
+  }
+
+  // 操作終了
   isTouching = false;
+  activePointerId = null;
 
-  // 上方向スワイプで高速落下
-  if (!currentBlock) return;
-
-  const t = clampTouchToCanvas(e.changedTouches[0]);
-  const dy = t.y - touchPrevY;
-
-  // 落下タイマーリセット
+  // 落下タイマーをリセット
   dropCounter = 0;
+
+  // ----------------------------------------------------------
+  // ブロックが既に消えている場合
+  // ----------------------------------------------------------
+
+  if (!currentBlock) {
+    if (canvas.hasPointerCapture(e.pointerId)) {
+      canvas.releasePointerCapture(e.pointerId);
+    }
+
+    return;
+  }
+
+  // ----------------------------------------------------------
+  // 最後の位置からの縦方向移動量
+  // ----------------------------------------------------------
+
+  const dy = e.clientY - touchPrevY;
+
+  // ==========================================================
+  // 上方向スワイプ
+  // → 高速落下
+  // ==========================================================
 
   if (dy < -20) {
-    while (canMove(currentBlock.x, currentBlock.y + 1)) currentBlock.y++;
+    while (canMove(currentBlock.x, currentBlock.y + 1)) {
+      currentBlock.y++;
+    }
+
     drop();
+  }
+
+  // ----------------------------------------------------------
+  // Pointer Capture解除
+  // ----------------------------------------------------------
+
+  if (canvas.hasPointerCapture(e.pointerId)) {
+    canvas.releasePointerCapture(e.pointerId);
   }
 });
 
-window.addEventListener("touchcancel", () => {
+// ============================================================
+// タッチキャンセル
+// ============================================================
+
+canvas.addEventListener("pointercancel", (e) => {
+  if (e.pointerId !== activePointerId) {
+    return;
+  }
+
   isTouching = false;
+  activePointerId = null;
+
   dropCounter = 0;
+
+  if (canvas.hasPointerCapture(e.pointerId)) {
+    canvas.releasePointerCapture(e.pointerId);
+  }
 });
 
 // ============================================================

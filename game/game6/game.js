@@ -33,6 +33,19 @@ let clearAnimationId = null;
 let falling = false;
 let fallingAnimationId = null;
 
+// ============================================================
+// 連鎖演出
+// ============================================================
+
+let chainCount = 0;
+
+let chainEffect = {
+  active: false,
+  count: 0,
+  startTime: 0,
+  duration: 1300,
+};
+
 // ブロック一覧
 let blocks = [];
 
@@ -546,6 +559,13 @@ function clearFullRows(callback) {
     return;
   }
 
+  // 今回の消去を1回の連鎖としてカウント
+  chainCount++;
+
+  if (chainCount >= 2) {
+    startChainEffect(chainCount);
+  }
+
   clearing = true;
 
   const startTime = performance.now();
@@ -567,35 +587,9 @@ function clearFullRows(callback) {
       const drawY = block.drawY !== undefined ? block.drawY : block.y;
 
       if (isClearing) {
-        const centerX = (block.x + block.width / 2) * cellSize;
-
-        const centerY = (drawY + 0.5) * cellSize;
-
-        const width = block.width * cellSize * scale;
-
-        const height = cellSize * scale;
-
-        ctx.save();
-
-        ctx.fillStyle = block.color;
-
-        ctx.fillRect(centerX - width / 2, centerY - height / 2, width, height);
-
-        ctx.restore();
+        drawSingleBlock(block, drawY, scale);
       } else {
-        const x = block.x * cellSize;
-
-        const y = drawY * cellSize;
-
-        ctx.fillStyle = block.color;
-
-        ctx.fillRect(x + 1, y + 1, block.width * cellSize - 2, cellSize - 2);
-
-        ctx.strokeStyle = "rgba(255,255,255,0.4)";
-
-        ctx.lineWidth = 1;
-
-        ctx.strokeRect(x + 1, y + 1, block.width * cellSize - 2, cellSize - 2);
+        drawSingleBlock(block, drawY, 1);
       }
     });
 
@@ -643,6 +637,76 @@ function clearFullRows(callback) {
 }
 
 // ============================================================
+// 連鎖演出開始
+// ============================================================
+
+function startChainEffect(count) {
+  chainEffect.active = true;
+  chainEffect.count = count;
+  chainEffect.startTime = performance.now();
+}
+
+// ============================================================
+// 連鎖演出描画
+// ============================================================
+
+function drawChainEffect() {
+  if (!chainEffect.active) {
+    return;
+  }
+
+  const elapsed = performance.now() - chainEffect.startTime;
+
+  const progress = Math.min(elapsed / chainEffect.duration, 1);
+
+  // 少し大きくなってから縮む
+  let scale;
+
+  if (progress < 0.25) {
+    const p = progress / 0.25;
+
+    scale = 0.5 + p * 0.7;
+  } else {
+    const p = (progress - 0.25) / 0.75;
+
+    scale = 1.2 - p * 0.2;
+  }
+
+  // 最後にフェードアウト
+  const alpha = Math.max(0, 1 - Math.max(0, progress - 0.62) / 0.38);
+
+  ctx.save();
+
+  ctx.globalAlpha = alpha;
+
+  ctx.translate(canvasWidth / 2, canvasHeight / 2);
+
+  ctx.scale(scale, scale);
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  // 文字の縁取り
+  ctx.font = "bold 54px sans-serif";
+
+  ctx.lineWidth = 10;
+  ctx.strokeStyle = "rgba(0,0,0,0.75)";
+
+  ctx.strokeText(chainEffect.count + " CHAIN!", 0, 0);
+
+  // 本体
+  ctx.fillStyle = "#ffffff";
+
+  ctx.fillText(chainEffect.count + " CHAIN!", 0, 0);
+
+  ctx.restore();
+
+  if (progress >= 1) {
+    chainEffect.active = false;
+  }
+}
+
+// ============================================================
 // 1段上昇
 // ============================================================
 
@@ -680,11 +744,10 @@ function addBottomRow() {
     });
 
     // 最下段が完全に埋まっていない
-    // 配置だけ採用する
     if (!occupied.every((cell) => cell)) {
       blocks.push(...newBlocks);
 
-      return;
+      return newBlocks;
     }
   }
 
@@ -692,6 +755,66 @@ function addBottomRow() {
   const newBlocks = createBottomBlocks();
 
   blocks.push(...newBlocks);
+
+  return newBlocks;
+}
+
+// ============================================================
+// 最下段に新しいブロックを下から追加するアニメーション
+// ============================================================
+
+function animateBottomRowInsertion(newBlocks, callback) {
+  if (!newBlocks || newBlocks.length === 0) {
+    if (callback) {
+      callback();
+    }
+
+    return;
+  }
+
+  const startY = rows;
+  const targetY = rows - 1;
+
+  // 新しいブロックは画面外の下から開始
+  newBlocks.forEach((block) => {
+    block.drawY = startY;
+  });
+
+  const startTime = performance.now();
+
+  // 追加アニメーション時間
+  const duration = 220;
+
+  function animate(currentTime) {
+    const progress = Math.min((currentTime - startTime) / duration, 1);
+
+    // 下から上へ、最後に少し減速
+    const eased = 1 - Math.pow(1 - progress, 3);
+
+    newBlocks.forEach((block) => {
+      block.drawY = startY + (targetY - startY) * eased;
+    });
+
+    draw();
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+      return;
+    }
+
+    // アニメーション終了
+    newBlocks.forEach((block) => {
+      block.drawY = block.y;
+    });
+
+    draw();
+
+    if (callback) {
+      callback();
+    }
+  }
+
+  requestAnimationFrame(animate);
 }
 
 // ============================================================
@@ -733,6 +856,9 @@ function finishTurn() {
     return;
   }
 
+  // 今回の操作における連鎖数をリセット
+  chainCount = 0;
+
   // ① 操作したブロックを重力で落とす
   applyGravityAnimated(() => {
     // ② 落下後に揃っていたら消去
@@ -751,6 +877,7 @@ function finishTurn() {
     addRowAfterChain();
   });
 }
+
 // ============================================================
 // 連鎖終了後に1段だけ追加
 // ============================================================
@@ -774,11 +901,13 @@ function addRowAfterChain() {
   });
 
   // 最下段に新しいブロックを追加
-  addBottomRow();
+  const newBlocks = addBottomRow();
 
-  // 追加後の落下・連鎖
-  // ここでは新しい段を追加しない
-  resolveAfterRowAdded();
+  // 下から新しい段がせり上がる
+  animateBottomRowInsertion(newBlocks, () => {
+    // 追加後の落下・連鎖
+    resolveAfterRowAdded();
+  });
 }
 
 // ============================================================
@@ -1074,6 +1203,9 @@ function draw() {
   drawGrid();
   drawBlocks();
 
+  // 連鎖演出
+  drawChainEffect();
+
   if (gameOver) {
     drawGameOver();
   }
@@ -1120,20 +1252,195 @@ function drawBlocks() {
   blocks.forEach((block) => {
     const drawY = block.drawY !== undefined ? block.drawY : block.y;
 
-    const x = block.x * cellSize;
-
-    const y = drawY * cellSize;
-
-    ctx.fillStyle = block.color;
-
-    ctx.fillRect(x + 1, y + 1, block.width * cellSize - 2, cellSize - 2);
-
-    ctx.strokeStyle = "rgba(255,255,255,0.4)";
-
-    ctx.lineWidth = 1;
-
-    ctx.strokeRect(x + 1, y + 1, block.width * cellSize - 2, cellSize - 2);
+    drawSingleBlock(block, drawY, 1);
   });
+}
+
+// ============================================================
+// 色を明るくする
+// ============================================================
+
+function lightenColor(color, amount) {
+  const rgb = hexToRgb(color);
+
+  if (!rgb) {
+    return color;
+  }
+
+  const r = Math.min(255, Math.round(rgb.r + (255 - rgb.r) * amount));
+
+  const g = Math.min(255, Math.round(rgb.g + (255 - rgb.g) * amount));
+
+  const b = Math.min(255, Math.round(rgb.b + (255 - rgb.b) * amount));
+
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+// ============================================================
+// 色を暗くする
+// ============================================================
+
+function darkenColor(color, amount) {
+  const rgb = hexToRgb(color);
+
+  if (!rgb) {
+    return color;
+  }
+
+  const r = Math.round(rgb.r * (1 - amount));
+  const g = Math.round(rgb.g * (1 - amount));
+  const b = Math.round(rgb.b * (1 - amount));
+
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+// ============================================================
+// HEX → RGB
+// ============================================================
+
+function hexToRgb(hex) {
+  const match = hex.match(/^#([0-9a-f]{6})$/i);
+
+  if (!match) {
+    return null;
+  }
+
+  const value = parseInt(match[1], 16);
+
+  return {
+    r: (value >> 16) & 255,
+    g: (value >> 8) & 255,
+    b: value & 255,
+  };
+}
+
+// ============================================================
+// シンプル・フラットなステップカット風ブロック
+// ============================================================
+
+function drawSingleBlock(block, drawY, scale = 1) {
+  const x = block.x * cellSize;
+  const y = drawY * cellSize;
+
+  const width = block.width * cellSize;
+  const height = cellSize;
+
+  const padding = 2;
+
+  const bx = x + padding;
+  const by = y + padding;
+  const bw = width - padding * 2;
+  const bh = height - padding * 2;
+
+  const centerX = bx + bw / 2;
+  const centerY = by + bh / 2;
+
+  ctx.save();
+
+  // ==========================================================
+  // 拡大・縮小
+  // ==========================================================
+
+  ctx.translate(centerX, centerY);
+  ctx.scale(scale, scale);
+  ctx.translate(-centerX, -centerY);
+
+  // ==========================================================
+  // 外側の面
+  // ==========================================================
+
+  ctx.fillStyle = darkenColor(block.color, 0.2);
+
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bw, bh, 4);
+  ctx.fill();
+
+  // ==========================================================
+  // 上側の面
+  // ==========================================================
+
+  ctx.fillStyle = lightenColor(block.color, 0.12);
+
+  ctx.beginPath();
+  ctx.moveTo(bx + 4, by + 2);
+  ctx.lineTo(bx + bw - 4, by + 2);
+  ctx.lineTo(bx + bw - 8, by + 8);
+  ctx.lineTo(bx + 8, by + 8);
+  ctx.closePath();
+  ctx.fill();
+
+  // ==========================================================
+  // 左側の面
+  // ==========================================================
+
+  ctx.fillStyle = lightenColor(block.color, 0.06);
+
+  ctx.beginPath();
+  ctx.moveTo(bx + 2, by + 4);
+  ctx.lineTo(bx + 8, by + 8);
+  ctx.lineTo(bx + 8, by + bh - 8);
+  ctx.lineTo(bx + 2, by + bh - 4);
+  ctx.closePath();
+  ctx.fill();
+
+  // ==========================================================
+  // 中央のメイン面
+  // ==========================================================
+
+  ctx.fillStyle = block.color;
+
+  ctx.beginPath();
+  ctx.roundRect(bx + 8, by + 8, bw - 16, bh - 16, 2);
+  ctx.fill();
+
+  // ==========================================================
+  // 下側の面
+  // ==========================================================
+
+  ctx.fillStyle = darkenColor(block.color, 0.12);
+
+  ctx.beginPath();
+  ctx.moveTo(bx + 8, by + bh - 8);
+
+  ctx.lineTo(bx + bw - 8, by + bh - 8);
+
+  ctx.lineTo(bx + bw - 4, by + bh - 2);
+
+  ctx.lineTo(bx + 4, by + bh - 2);
+
+  ctx.closePath();
+  ctx.fill();
+
+  // ==========================================================
+  // 右側の面
+  // ==========================================================
+
+  ctx.fillStyle = darkenColor(block.color, 0.16);
+
+  ctx.beginPath();
+  ctx.moveTo(bx + bw - 2, by + 4);
+
+  ctx.lineTo(bx + bw - 8, by + 8);
+
+  ctx.lineTo(bx + bw - 8, by + bh - 8);
+
+  ctx.lineTo(bx + bw - 2, by + bh - 4);
+
+  ctx.closePath();
+  ctx.fill();
+
+  // ==========================================================
+  // 外周ライン
+  // ==========================================================
+
+  ctx.strokeStyle = "rgba(0,0,0,0.20)";
+  ctx.lineWidth = 1;
+
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bw, bh, 4);
+  ctx.stroke();
+
+  ctx.restore();
 }
 
 // ============================================================

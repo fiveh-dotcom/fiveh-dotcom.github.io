@@ -1315,17 +1315,20 @@ function hexToRgb(hex) {
 }
 
 // ============================================================
-// シンプル・フラットなステップカット風ブロック
+// ブロックを描画
 // ============================================================
 
 function drawSingleBlock(block, drawY, scale = 1) {
   const x = block.x * cellSize;
   const y = drawY * cellSize;
-
   const width = block.width * cellSize;
   const height = cellSize;
 
-  const padding = 2;
+  // ============================================================
+  // ブロック間の余白
+  // ============================================================
+
+  const padding = 0;
 
   const bx = x + padding;
   const by = y + padding;
@@ -1337,108 +1340,74 @@ function drawSingleBlock(block, drawY, scale = 1) {
 
   ctx.save();
 
-  // ==========================================================
+  // ============================================================
   // 拡大・縮小
-  // ==========================================================
+  // ============================================================
 
   ctx.translate(centerX, centerY);
   ctx.scale(scale, scale);
   ctx.translate(-centerX, -centerY);
 
-  // ==========================================================
-  // 外側の面
-  // ==========================================================
+  // ============================================================
+  // ブロック本体
+  // ============================================================
 
-  ctx.fillStyle = darkenColor(block.color, 0.2);
-
+  ctx.fillStyle = darkenColor(block.color, 0.5);
   ctx.beginPath();
-  ctx.roundRect(bx, by, bw, bh, 4);
+  ctx.rect(bx, by, bw, bh);
   ctx.fill();
 
-  // ==========================================================
-  // 上側の面
-  // ==========================================================
+  // ============================================================
+  // 上面
+  // ============================================================
 
-  ctx.fillStyle = lightenColor(block.color, 0.12);
-
+  ctx.fillStyle = lightenColor(block.color, 0.01);
   ctx.beginPath();
-  ctx.moveTo(bx + 4, by + 2);
-  ctx.lineTo(bx + bw - 4, by + 2);
-  ctx.lineTo(bx + bw - 8, by + 8);
-  ctx.lineTo(bx + 8, by + 8);
+  ctx.moveTo(bx, by);
+  ctx.lineTo(bx + bw, by);
+  ctx.lineTo(bx + bw - 5, by + 5);
+  ctx.lineTo(bx + 5, by + 5);
   ctx.closePath();
   ctx.fill();
 
-  // ==========================================================
-  // 左側の面
-  // ==========================================================
+  // ============================================================
+  // 左面
+  // ============================================================
 
-  ctx.fillStyle = lightenColor(block.color, 0.06);
-
+  ctx.fillStyle = darkenColor(block.color, 0.18);
   ctx.beginPath();
-  ctx.moveTo(bx + 2, by + 4);
-  ctx.lineTo(bx + 8, by + 8);
-  ctx.lineTo(bx + 8, by + bh - 8);
-  ctx.lineTo(bx + 2, by + bh - 4);
+  ctx.moveTo(bx, by);
+  ctx.lineTo(bx + 5, by + 5);
+  ctx.lineTo(bx + 5, by + bh - 5);
+  ctx.lineTo(bx, by + bh);
   ctx.closePath();
   ctx.fill();
 
-  // ==========================================================
-  // 中央のメイン面
-  // ==========================================================
+  // ============================================================
+  // 下面
+  // ============================================================
 
-  ctx.fillStyle = block.color;
-
+  ctx.fillStyle = darkenColor(block.color, 0.3);
   ctx.beginPath();
-  ctx.roundRect(bx + 8, by + 8, bw - 16, bh - 16, 2);
-  ctx.fill();
-
-  // ==========================================================
-  // 下側の面
-  // ==========================================================
-
-  ctx.fillStyle = darkenColor(block.color, 0.12);
-
-  ctx.beginPath();
-  ctx.moveTo(bx + 8, by + bh - 8);
-
-  ctx.lineTo(bx + bw - 8, by + bh - 8);
-
-  ctx.lineTo(bx + bw - 4, by + bh - 2);
-
-  ctx.lineTo(bx + 4, by + bh - 2);
-
+  ctx.moveTo(bx + 5, by + bh - 5);
+  ctx.lineTo(bx + bw - 5, by + bh - 5);
+  ctx.lineTo(bx + bw, by + bh);
+  ctx.lineTo(bx, by + bh);
   ctx.closePath();
   ctx.fill();
 
-  // ==========================================================
-  // 右側の面
-  // ==========================================================
+  // ============================================================
+  // 右面
+  // ============================================================
 
-  ctx.fillStyle = darkenColor(block.color, 0.16);
-
+  ctx.fillStyle = darkenColor(block.color, 0.38);
   ctx.beginPath();
-  ctx.moveTo(bx + bw - 2, by + 4);
-
-  ctx.lineTo(bx + bw - 8, by + 8);
-
-  ctx.lineTo(bx + bw - 8, by + bh - 8);
-
-  ctx.lineTo(bx + bw - 2, by + bh - 4);
-
+  ctx.moveTo(bx + bw, by);
+  ctx.lineTo(bx + bw - 5, by + 5);
+  ctx.lineTo(bx + bw - 5, by + bh - 5);
+  ctx.lineTo(bx + bw, by + bh);
   ctx.closePath();
   ctx.fill();
-
-  // ==========================================================
-  // 外周ライン
-  // ==========================================================
-
-  ctx.strokeStyle = "rgba(0,0,0,0.20)";
-  ctx.lineWidth = 1;
-
-  ctx.beginPath();
-  ctx.roundRect(bx, by, bw, bh, 4);
-  ctx.stroke();
 
   ctx.restore();
 }

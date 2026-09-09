@@ -179,13 +179,31 @@ function drawCell(x, y, value, scale = 1) {
   const centerY = (y + 0.5) * blockSize;
 
   const size = (blockSize - 2) * scale;
+
+  drawBlock(ctx, centerX, centerY, size, value);
+}
+
+// ============================================================
+// ブロック共通描画
+// ============================================================
+
+function drawBlock(ctx, centerX, centerY, size, value) {
   const px = centerX - size / 2;
   const py = centerY - size / 2;
+
+  // ----------------------------------------------------------
+  // ブロック本体
+  // ----------------------------------------------------------
 
   ctx.fillStyle = getColor(value);
   ctx.fillRect(px, py, size, size);
 
+  // ----------------------------------------------------------
+  // 数字
+  // ----------------------------------------------------------
+
   ctx.fillStyle = "#000";
+
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
@@ -193,7 +211,10 @@ function drawCell(x, y, value, scale = 1) {
 
   drawCenteredText(ctx, text, centerX, centerY, size * 0.8, size * 0.5);
 
-  // 1024以上はキラキラエフェクト
+  // ----------------------------------------------------------
+  // 1024以上
+  // ----------------------------------------------------------
+
   if (value >= 1024) {
     ctx.strokeStyle = "rgba(255,255,255,0.6)";
     ctx.lineWidth = 2;
@@ -225,7 +246,7 @@ function getColor(value) {
 function drawNext() {
   nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
 
-  const gap = 5; // ブロック間の余白
+  const gap = 5;
 
   // Next用のタイルサイズ
   const size = Math.min(nextCanvas.width - 4, (nextCanvas.height - gap * 2) / 3);
@@ -234,26 +255,10 @@ function drawNext() {
     const x = (nextCanvas.width - size) / 2;
     const y = i * (size + gap);
 
-    // ブロック本体
-    nextCtx.fillStyle = colors[val] || "#333";
-    nextCtx.fillRect(x, y, size, size);
+    const centerX = x + size / 2;
+    const centerY = y + size / 2;
 
-    // 数字表示
-    nextCtx.fillStyle = "#000";
-    nextCtx.font = `bold ${Math.floor(size * 0.45)}px 'Poppins', sans-serif`;
-    nextCtx.textAlign = "center";
-    nextCtx.textBaseline = "middle";
-
-    const text = formatNumber(val);
-
-    drawCenteredText(nextCtx, text, x + size / 2, y + size / 2, size * 0.8, size * 0.5);
-
-    // 1024以上はキラキラエフェクト
-    if (val >= 1024) {
-      nextCtx.strokeStyle = "rgba(255,255,255,0.6)";
-      nextCtx.lineWidth = 2;
-      nextCtx.strokeRect(x + 2, y + 2, size - 4, size - 4);
-    }
+    drawBlock(nextCtx, centerX, centerY, size, val);
   });
 }
 

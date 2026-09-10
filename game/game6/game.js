@@ -43,7 +43,14 @@ let chainEffect = {
   active: false,
   count: 0,
   startTime: 0,
-  duration: 1300,
+  duration: 1200,
+
+  // ポンッ演出
+  popStartTime: 0,
+  popDuration: 160,
+
+  // 連鎖演出用アニメーション
+  animationId: null,
 };
 
 // ブロック一覧
@@ -58,24 +65,66 @@ let draggedBlock = null;
 let dragStartX = 0;
 let originalX = 0;
 
-// アニメーション
-let animationId = null;
-
 // ブロックの色
 const blockColors = ["#3498db", "#e74c3c", "#2ecc71", "#f1c40f", "#9b59b6", "#e67e22"];
+
+// ============================================================
+// ブロック幅のランダム生成
+// ============================================================
+
+function getRandomBlockWidth(maxWidth) {
+  const weights = {
+    1: 10,
+    2: 35,
+    3: 35,
+    4: 20,
+  };
+
+  const available = [];
+
+  for (let width = 1; width <= maxWidth; width++) {
+    available.push({
+      width,
+      weight: weights[width],
+    });
+  }
+
+  const totalWeight = available.reduce((sum, item) => sum + item.weight, 0);
+
+  let random = Math.random() * totalWeight;
+
+  for (const item of available) {
+    random -= item.weight;
+
+    if (random < 0) {
+      return item.width;
+    }
+  }
+
+  return 1;
+}
 
 // ============================================================
 // ブロック生成
 // ============================================================
 
 function createBlock(x, y, width) {
+  const color = blockColors[Math.floor(Math.random() * blockColors.length)];
+
   return {
     id: nextBlockId++,
     x: x,
     y: y,
     drawY: y,
     width: width,
-    color: blockColors[Math.floor(Math.random() * blockColors.length)],
+    color: color,
+
+    // 描画用カラーを生成時にキャッシュ
+    dark: darkenColor(color, 0.5),
+    light: lightenColor(color, 0.01),
+    left: darkenColor(color, 0.18),
+    bottom: darkenColor(color, 0.3),
+    right: darkenColor(color, 0.38),
   };
 }
 
@@ -139,7 +188,7 @@ function createInitialRow(row) {
       continue;
     }
 
-    const width = Math.floor(Math.random() * maxWidth) + 1;
+    const width = getRandomBlockWidth(maxWidth);
 
     newBlocks.push(createBlock(x, row, width));
 
@@ -209,7 +258,7 @@ function createBottomBlocks() {
       continue;
     }
 
-    const width = Math.floor(Math.random() * maxWidth) + 1;
+    const width = getRandomBlockWidth(maxWidth);
 
     newBlocks.push(createBlock(x, rows - 1, width));
 
@@ -410,7 +459,7 @@ function applyGravityAnimated(callback) {
   const startY = new Map();
 
   blocks.forEach((block) => {
-    startY.set(block.id, block.y);
+    startY.set(block.id, block.drawY);
   });
 
   // 最大落下距離
@@ -641,9 +690,41 @@ function clearFullRows(callback) {
 // ============================================================
 
 function startChainEffect(count) {
+  const now = performance.now();
+
   chainEffect.active = true;
   chainEffect.count = count;
-  chainEffect.startTime = performance.now();
+
+  // 最後の連鎖から1200ms表示
+  chainEffect.startTime = now;
+
+  // 新しい連鎖なのでポンッ
+  chainEffect.popStartTime = now;
+
+  // まだアニメーションが動いていなければ開始
+  if (chainEffect.animationId === null) {
+    chainEffect.animationId = requestAnimationFrame(animateChainEffect);
+  }
+}
+
+// ============================================================
+// 連鎖演出アニメーション
+//
+// ・連鎖演出を毎フレーム更新
+// ・ゲーム本体の描画タイミングに依存せず表示
+// ・1200ms経過後に演出を終了
+// ============================================================
+
+function animateChainEffect(currentTime) {
+  if (!chainEffect.active) {
+    chainEffect.animationId = null;
+
+    return;
+  }
+
+  draw();
+
+  chainEffect.animationId = requestAnimationFrame(animateChainEffect);
 }
 
 // ============================================================
@@ -655,25 +736,60 @@ function drawChainEffect() {
     return;
   }
 
-  const elapsed = performance.now() - chainEffect.startTime;
+  const now = performance.now();
 
-  const progress = Math.min(elapsed / chainEffect.duration, 1);
+  // ==========================================================
+  // 最後の連鎖からの経過時間
+  // ==========================================================
 
-  // 少し大きくなってから縮む
-  let scale;
+  const elapsed = now - chainEffect.startTime;
 
-  if (progress < 0.25) {
-    const p = progress / 0.25;
+  // 1200ms経過したら終了
+  if (elapsed >= chainEffect.duration) {
+    chainEffect.active = false;
+    chainEffect.animationId = null;
 
-    scale = 0.5 + p * 0.7;
-  } else {
-    const p = (progress - 0.25) / 0.75;
-
-    scale = 1.2 - p * 0.2;
+    return;
   }
 
-  // 最後にフェードアウト
-  const alpha = Math.max(0, 1 - Math.max(0, progress - 0.62) / 0.38);
+  // ==========================================================
+  // ポンッ演出
+  // ==========================================================
+
+  const popElapsed = now - chainEffect.popStartTime;
+
+  const popProgress = Math.min(popElapsed / chainEffect.popDuration, 1);
+
+  let scale;
+
+  if (popProgress < 0.5) {
+    // 少し大きくなる
+    const p = popProgress / 0.5;
+
+    scale = 1.0 + p * 0.15;
+  } else {
+    // 元の大きさに戻る
+    const p = (popProgress - 0.5) / 0.5;
+
+    scale = 1.15 - p * 0.15;
+  }
+
+  // ==========================================================
+  // フェードアウト
+  // 最後の200msだけ薄くする
+  // ==========================================================
+
+  const fadeStart = chainEffect.duration - 200;
+
+  let alpha = 1;
+
+  if (elapsed > fadeStart) {
+    alpha = 1 - (elapsed - fadeStart) / 200;
+  }
+
+  // ==========================================================
+  // 描画
+  // ==========================================================
 
   ctx.save();
 
@@ -686,9 +802,13 @@ function drawChainEffect() {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
-  // 文字の縁取り
+  // ==========================================================
+  // 文字
+  // ==========================================================
+
   ctx.font = "bold 54px sans-serif";
 
+  // 縁取り
   ctx.lineWidth = 10;
   ctx.strokeStyle = "rgba(0,0,0,0.75)";
 
@@ -700,10 +820,6 @@ function drawChainEffect() {
   ctx.fillText(chainEffect.count + " CHAIN!", 0, 0);
 
   ctx.restore();
-
-  if (progress >= 1) {
-    chainEffect.active = false;
-  }
 }
 
 // ============================================================
@@ -713,7 +829,6 @@ function drawChainEffect() {
 function raiseBlocks() {
   blocks.forEach((block) => {
     block.y--;
-    block.drawY = block.y;
   });
 }
 
@@ -859,6 +974,9 @@ function finishTurn() {
   // 今回の操作における連鎖数をリセット
   chainCount = 0;
 
+  // 連鎖演出も新しい操作単位でリセット
+  chainEffect.active = false;
+
   // ① 操作したブロックを重力で落とす
   applyGravityAnimated(() => {
     // ② 落下後に揃っていたら消去
@@ -888,26 +1006,196 @@ function addRowAfterChain() {
   }
 
   // 最上段にブロックがある場合
-  // 今回の操作で消せなかったためゲームオーバー
   if (blocks.some((block) => block.y <= 0)) {
     endGame();
     return;
   }
 
-  // 最上段にブロックがなければ1段上昇
+  // ==========================================================
+  // 行追加前の画面上の位置を保存
+  // ==========================================================
+
+  const startY = new Map();
+
+  blocks.forEach((block) => {
+    startY.set(block.id, block.drawY);
+  });
+
+  // ==========================================================
+  // 論理位置だけ1段上げる
+  // ※ drawY はまだ変更しない
+  // ==========================================================
+
   blocks.forEach((block) => {
     block.y--;
-    block.drawY = block.y;
   });
 
+  // ==========================================================
   // 最下段に新しいブロックを追加
+  // ==========================================================
+
   const newBlocks = addBottomRow();
 
-  // 下から新しい段がせり上がる
-  animateBottomRowInsertion(newBlocks, () => {
-    // 追加後の落下・連鎖
-    resolveAfterRowAdded();
+  newBlocks.forEach((block) => {
+    startY.set(block.id, rows);
+    block.drawY = rows;
   });
+
+  // ==========================================================
+  // 行追加後の最終位置を計算
+  // ==========================================================
+
+  const targetY = calculateGravityTargets();
+
+  // ==========================================================
+  // 現在位置から最終位置まで直接移動
+  // ==========================================================
+
+  animateRowAddAndGravity(startY, targetY, () => {
+    blocks.forEach((block) => {
+      block.y = targetY.get(block.id);
+      block.drawY = block.y;
+    });
+
+    if (getFullRows().length > 0) {
+      clearFullRows(() => {
+        resolveAfterRowAdded();
+      });
+
+      return;
+    }
+
+    draw();
+  });
+}
+
+// ============================================================
+// 重力後の最終位置を計算
+// 実際の座標は変更しない
+// ============================================================
+
+function calculateGravityTargets() {
+  const virtualY = new Map();
+  const targetY = new Map();
+
+  blocks.forEach((block) => {
+    virtualY.set(block.id, block.y);
+    targetY.set(block.id, block.y);
+  });
+
+  let moved = true;
+
+  while (moved) {
+    moved = false;
+
+    const sortedBlocks = [...blocks].sort((a, b) => {
+      return virtualY.get(b.id) - virtualY.get(a.id);
+    });
+
+    sortedBlocks.forEach((block) => {
+      const currentY = virtualY.get(block.id);
+
+      if (currentY + 1 >= rows) {
+        return;
+      }
+
+      const blocked = blocks.some((other) => {
+        if (other === block) {
+          return false;
+        }
+
+        const otherY = virtualY.get(other.id);
+
+        if (otherY !== currentY + 1) {
+          return false;
+        }
+
+        return block.x < other.x + other.width && block.x + block.width > other.x;
+      });
+
+      if (blocked) {
+        return;
+      }
+
+      virtualY.set(block.id, currentY + 1);
+      targetY.set(block.id, currentY + 1);
+
+      moved = true;
+    });
+  }
+
+  return targetY;
+}
+
+// ============================================================
+// 行追加＋重力アニメーション
+//
+// ・既存ブロック
+//   現在位置 → 行追加後の重力最終位置
+//
+// ・新しいブロック
+//   画面外下部 → 重力最終位置
+//
+// 「一度上がってから落ちる」動きを防ぐ
+// ============================================================
+
+function animateRowAddAndGravity(startY, targetY, callback) {
+  falling = true;
+
+  const startTime = performance.now();
+
+  // 距離に応じて時間を調整
+  let maxDistance = 0;
+
+  blocks.forEach((block) => {
+    const fromY = startY.get(block.id);
+    const toY = targetY.get(block.id);
+
+    const distance = Math.abs(toY - fromY);
+
+    maxDistance = Math.max(maxDistance, distance);
+  });
+
+  const duration = Math.max(180, maxDistance * 55);
+
+  function animate(currentTime) {
+    const progress = Math.min((currentTime - startTime) / duration, 1);
+
+    // なめらかに減速
+    const eased = 1 - Math.pow(1 - progress, 3);
+
+    blocks.forEach((block) => {
+      const fromY = startY.get(block.id);
+      const toY = targetY.get(block.id);
+
+      block.drawY = fromY + (toY - fromY) * eased;
+    });
+
+    draw();
+
+    if (progress < 1) {
+      fallingAnimationId = requestAnimationFrame(animate);
+      return;
+    }
+
+    // ========================================================
+    // アニメーション終了
+    // ========================================================
+
+    blocks.forEach((block) => {
+      block.y = targetY.get(block.id);
+      block.drawY = block.y;
+    });
+
+    falling = false;
+    fallingAnimationId = null;
+
+    if (callback) {
+      callback();
+    }
+  }
+
+  fallingAnimationId = requestAnimationFrame(animate);
 }
 
 // ============================================================
@@ -920,12 +1208,6 @@ function endGame() {
   paused = false;
   clearing = false;
   falling = false;
-
-  if (animationId) {
-    cancelAnimationFrame(animationId);
-
-    animationId = null;
-  }
 
   if (clearAnimationId) {
     cancelAnimationFrame(clearAnimationId);
@@ -996,12 +1278,6 @@ function startGame() {
   });
 
   draw();
-
-  if (animationId) {
-    cancelAnimationFrame(animationId);
-  }
-
-  animationId = requestAnimationFrame(draw);
 
   document.getElementById("startBtn").textContent = "ゲームリセット";
 }
@@ -1209,10 +1485,6 @@ function draw() {
   if (gameOver) {
     drawGameOver();
   }
-
-  if (gameStarted && !gameOver) {
-    animationId = requestAnimationFrame(draw);
-  }
 }
 
 // ============================================================
@@ -1352,7 +1624,8 @@ function drawSingleBlock(block, drawY, scale = 1) {
   // ブロック本体
   // ============================================================
 
-  ctx.fillStyle = darkenColor(block.color, 0.5);
+  ctx.fillStyle = block.dark;
+
   ctx.beginPath();
   ctx.rect(bx, by, bw, bh);
   ctx.fill();
@@ -1361,7 +1634,8 @@ function drawSingleBlock(block, drawY, scale = 1) {
   // 上面
   // ============================================================
 
-  ctx.fillStyle = lightenColor(block.color, 0.01);
+  ctx.fillStyle = block.light;
+
   ctx.beginPath();
   ctx.moveTo(bx, by);
   ctx.lineTo(bx + bw, by);
@@ -1374,7 +1648,8 @@ function drawSingleBlock(block, drawY, scale = 1) {
   // 左面
   // ============================================================
 
-  ctx.fillStyle = darkenColor(block.color, 0.18);
+  ctx.fillStyle = block.left;
+
   ctx.beginPath();
   ctx.moveTo(bx, by);
   ctx.lineTo(bx + 5, by + 5);
@@ -1387,7 +1662,8 @@ function drawSingleBlock(block, drawY, scale = 1) {
   // 下面
   // ============================================================
 
-  ctx.fillStyle = darkenColor(block.color, 0.3);
+  ctx.fillStyle = block.bottom;
+
   ctx.beginPath();
   ctx.moveTo(bx + 5, by + bh - 5);
   ctx.lineTo(bx + bw - 5, by + bh - 5);
@@ -1400,7 +1676,8 @@ function drawSingleBlock(block, drawY, scale = 1) {
   // 右面
   // ============================================================
 
-  ctx.fillStyle = darkenColor(block.color, 0.38);
+  ctx.fillStyle = block.right;
+
   ctx.beginPath();
   ctx.moveTo(bx + bw, by);
   ctx.lineTo(bx + bw - 5, by + 5);

@@ -352,7 +352,6 @@ function drop() {
   mergeAndFall(placedX, placedY).then(() => {
     mergeLock = false;
 
-    currentBlock = null;
     newBlock();
 
     if (!canMove(currentBlock.x, currentBlock.y)) {
@@ -474,6 +473,22 @@ async function mergeAndFall(startX = null, startY = null) {
     const mergedValue = val * 2;
 
     // ========================================================
+    // マージ中は落下中ブロックを描画しない
+    // ========================================================
+
+    currentBlock = null;
+
+    // ========================================================
+    // マージする2タイルを先にgridから消す
+    //
+    // animateMerge()中にdrawGrid()が呼ばれるため、
+    // アニメーション中に元のタイルが再描画されないようにする。
+    // ========================================================
+
+    grid[fy][fx] = null;
+    grid[ty][tx] = null;
+
+    // ========================================================
     // マージアニメーション
     // ========================================================
 
@@ -484,7 +499,6 @@ async function mergeAndFall(startX = null, startY = null) {
     // ========================================================
 
     grid[fy][fx] = mergedValue;
-    grid[ty][tx] = null;
 
     score += mergedValue;
 
@@ -634,13 +648,16 @@ function sleep(ms) {
 // ② 接触直前に少し縮む
 // ③ 合体
 // ④ 合体後のタイルがポンッと拡大
+//
+// ※ アニメーション時間はrequestAnimationFrameで管理
+//    sleep()は使用しない
 // ============================================================
 
 async function animateMerge(fx, fy, tx, ty, val) {
   isMergeAnimating = true;
 
   const duration = 220;
-  const startTime = performance.now();
+  const popDuration = 160;
 
   const centerX = (fx + tx) / 2;
   const centerY = (fy + ty) / 2;
@@ -652,6 +669,8 @@ async function animateMerge(fx, fy, tx, ty, val) {
   // ==========================================================
   // ① 2つのタイルが近づく
   // ==========================================================
+
+  const startTime = performance.now();
 
   while (true) {
     const elapsed = performance.now() - startTime;
@@ -679,7 +698,9 @@ async function animateMerge(fx, fy, tx, ty, val) {
     drawCell(x1, y1, val, scale);
     drawCell(x2, y2, val, scale);
 
-    if (t >= 1) break;
+    if (t >= 1) {
+      break;
+    }
 
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
@@ -687,13 +708,14 @@ async function animateMerge(fx, fy, tx, ty, val) {
   }
 
   // ==========================================================
-  // ② 合体した瞬間
+  // ② 合体後のタイルがポンッと拡大
   // ==========================================================
 
-  const popSteps = 8;
+  const popStartTime = performance.now();
 
-  for (let i = 0; i <= popSteps; i++) {
-    const t = i / popSteps;
+  while (true) {
+    const elapsed = performance.now() - popStartTime;
+    const t = Math.min(elapsed / popDuration, 1);
 
     let scale;
 
@@ -715,12 +737,20 @@ async function animateMerge(fx, fy, tx, ty, val) {
     // 合体後の数字
     drawCell(centerX, centerY, val * 2, scale);
 
-    await sleep(20);
+    if (t >= 1) {
+      break;
+    }
+
+    await new Promise((resolve) => {
+      requestAnimationFrame(resolve);
+    });
   }
 
-  isMergeAnimating = false;
+  // ==========================================================
+  // アニメーション終了
+  // ==========================================================
 
-  drawGrid();
+  isMergeAnimating = false;
 }
 
 // キー操作
@@ -737,11 +767,22 @@ document.addEventListener("keydown", (e) => {
 
 // ============================================================
 // スマホ操作（Pointer Events）
+//
+// ・操作開始はcanvas内のみ
+// ・タップ → 通常通り落下
+// ・長押し → 通常通り落下
+// ・横ドラッグ → ブロックを横移動
+// ・下方向ドラッグ → ブロックを1マスずつ高速落下
+// ・上方向スワイプ → 一気に最下部まで高速落下
+// ・canvas外へ出ても急降下しない
+// ・タップ終了時にdropCounterをリセットしない
 // ============================================================
 
 let isTouching = false;
 let touchPrevX = 0;
 let touchPrevY = 0;
+let touchStartY = 0;
+let touchMoveY = 0;
 let activePointerId = null;
 
 // ============================================================
@@ -749,20 +790,20 @@ let activePointerId = null;
 // ============================================================
 
 canvas.addEventListener("pointerdown", (e) => {
-  // ゲーム中でなければ操作しない
-  if (!gameStarted || !currentBlock || mergeLock || paused) {
+  // スマホ・タブレットのタッチ操作だけを対象
+  if (e.pointerType !== "touch") {
     return;
   }
 
-  // スマホ・タブレットのタッチ操作だけを対象
-  if (e.pointerType !== "touch") {
+  // ゲーム中でなければ操作しない
+  if (!gameStarted || !currentBlock || mergeLock || paused) {
     return;
   }
 
   const rect = canvas.getBoundingClientRect();
 
   // ----------------------------------------------------------
-  // canvas外からのタップは完全に無視
+  // canvas内から開始したタッチだけを受け付ける
   // ----------------------------------------------------------
 
   if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
@@ -770,7 +811,7 @@ canvas.addEventListener("pointerdown", (e) => {
   }
 
   // ----------------------------------------------------------
-  // canvas内でタッチ開始
+  // タッチ開始位置を保存
   // ----------------------------------------------------------
 
   isTouching = true;
@@ -778,9 +819,10 @@ canvas.addEventListener("pointerdown", (e) => {
 
   touchPrevX = e.clientX;
   touchPrevY = e.clientY;
+  touchStartY = e.clientY;
+  touchMoveY = 0;
 
-  // この指の操作をcanvasが引き続き受け取る
-  // 指がcanvas外へ出てもpointermoveを受け取れる
+  // 指がcanvas外へ出てもイベントを受け取り続ける
   canvas.setPointerCapture(e.pointerId);
 
   // ブラウザのスクロール・ジェスチャーを防止
@@ -802,24 +844,23 @@ canvas.addEventListener("pointermove", (e) => {
     return;
   }
 
-  if (!currentBlock || paused) {
+  if (!currentBlock || paused || mergeLock) {
     return;
   }
 
   e.preventDefault();
 
   // ----------------------------------------------------------
-  // 実際の指の移動量を取得
-  //
-  // canvas外に出てもPointer Captureによって
-  // ここにイベントが届く
+  // 指の移動量
   // ----------------------------------------------------------
 
   const dx = e.clientX - touchPrevX;
   const dy = e.clientY - touchPrevY;
 
   // ==========================================================
-  // 横移動
+  // 横ドラッグ
+  //
+  // 指を横にblockSize/2以上動かしたら1マス移動
   // ==========================================================
 
   if (Math.abs(dx) > blockSize / 2) {
@@ -829,20 +870,32 @@ canvas.addEventListener("pointermove", (e) => {
       currentBlock.x--;
     }
 
-    // 横方向の移動量をリセット
+    // 横方向の基準位置を更新
     touchPrevX = e.clientX;
   }
 
   // ==========================================================
-  // 下方向
+  // 下方向ドラッグ
+  //
+  // 下方向への移動量を累積する。
+  // blockSize/2以上たまるたびに1マス落下。
+  // 上方向へ戻した場合は累積量も減る。
   // ==========================================================
 
-  if (dy > blockSize / 2) {
+  touchMoveY += dy;
+
+  if (touchMoveY >= blockSize / 2) {
     drop();
 
-    // 縦方向の移動量をリセット
-    touchPrevY = e.clientY;
+    // 余った移動量を残す
+    touchMoveY -= blockSize / 2;
+  } else if (touchMoveY < 0) {
+    // 上方向へ戻した分は累積をリセット
+    touchMoveY = 0;
   }
+
+  // 次回の移動量計算用
+  touchPrevY = e.clientY;
 });
 
 // ============================================================
@@ -860,48 +913,53 @@ canvas.addEventListener("pointerup", (e) => {
     return;
   }
 
-  // 操作終了
+  // ----------------------------------------------------------
+  // pointerup時点の位置
+  // ----------------------------------------------------------
+
+  const endY = e.clientY;
+
+  // タッチ終了
   isTouching = false;
   activePointerId = null;
 
-  // 落下タイマーをリセット
-  dropCounter = 0;
-
-  // ----------------------------------------------------------
-  // ブロックが既に消えている場合
-  // ----------------------------------------------------------
-
-  if (!currentBlock) {
-    if (canvas.hasPointerCapture(e.pointerId)) {
-      canvas.releasePointerCapture(e.pointerId);
-    }
-
-    return;
-  }
-
-  // ----------------------------------------------------------
-  // 最後の位置からの縦方向移動量
-  // ----------------------------------------------------------
-
-  const dy = e.clientY - touchPrevY;
-
   // ==========================================================
   // 上方向スワイプ
-  // → 高速落下
+  //
+  // canvas内で開始して、
+  // 指を上方向へ20px以上動かして離した場合だけ高速落下
+  //
+  // canvas外へ出た場合でもpointer captureでイベントは届くが、
+  // 上スワイプとして扱わない。
   // ==========================================================
 
-  if (dy < -20) {
+  const rect = canvas.getBoundingClientRect();
+
+  const startedInside = touchStartY >= rect.top && touchStartY <= rect.bottom;
+
+  const endedInside = endY >= rect.top && endY <= rect.bottom;
+
+  const totalDy = endY - touchStartY;
+
+  if (startedInside && endedInside && totalDy < -20 && currentBlock && !paused && !mergeLock) {
+    // 一気に最下部まで落とす
     while (canMove(currentBlock.x, currentBlock.y + 1)) {
       currentBlock.y++;
     }
 
+    // 到達した位置で設置・マージ処理
     drop();
   }
 
   // ----------------------------------------------------------
-  // Pointer Capture解除
+  // 重要：
+  //
+  // dropCounter = 0 は絶対にしない。
+  //
+  // タップ連打しても落下時間は蓄積する。
   // ----------------------------------------------------------
 
+  // Pointer Capture解除
   if (canvas.hasPointerCapture(e.pointerId)) {
     canvas.releasePointerCapture(e.pointerId);
   }
@@ -919,7 +977,7 @@ canvas.addEventListener("pointercancel", (e) => {
   isTouching = false;
   activePointerId = null;
 
-  dropCounter = 0;
+  // ここでもdropCounterはリセットしない
 
   if (canvas.hasPointerCapture(e.pointerId)) {
     canvas.releasePointerCapture(e.pointerId);

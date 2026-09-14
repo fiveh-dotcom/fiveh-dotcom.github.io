@@ -1179,6 +1179,7 @@ document.addEventListener("keydown", (e) => {
 let isTouching = false;
 let touchPrevX = 0;
 let touchPrevY = 0;
+let touchStartX = 0;
 let touchStartY = 0;
 let touchMoveY = 0;
 let activePointerId = null;
@@ -1217,6 +1218,7 @@ canvas.addEventListener("pointerdown", (e) => {
 
   touchPrevX = e.clientX;
   touchPrevY = e.clientY;
+  touchStartX = e.clientX;
   touchStartY = e.clientY;
   touchMoveY = 0;
 
@@ -1339,10 +1341,12 @@ canvas.addEventListener("pointerup", (e) => {
   // 上方向スワイプ
   //
   // canvas内で開始して、
-  // 指を上方向へ20px以上動かして離した場合だけ高速落下
+  // 指を上方向へ20px以上動かし、
+  // かつ縦方向の移動量が横方向の1.3倍を超えて離した場合だけ
+  // 高速落下する。
   //
   // canvas外へ出た場合でもpointer captureでイベントは届くが、
-  // 上スワイプとして扱わない。
+  // 終了位置がcanvas外なら上スワイプとして扱わない。
   // ==========================================================
 
   const rect = canvas.getBoundingClientRect();
@@ -1351,9 +1355,23 @@ canvas.addEventListener("pointerup", (e) => {
 
   const endedInside = endY >= rect.top && endY <= rect.bottom;
 
+  const totalDx = e.clientX - touchStartX;
   const totalDy = endY - touchStartY;
 
-  if (startedInside && endedInside && totalDy < -20 && currentBlock && !paused && !mergeLock) {
+  // ==========================================================
+  // 上方向スワイプ判定
+  //
+  // ・20px以上、上方向へ移動
+  // ・かつ、縦方向の移動量が横方向の1.3倍を超える場合だけ
+  //   「上スワイプ」と判定する
+  //
+  // これにより、斜め上へのスワイプは
+  // 上スワイプ扱いにならず、即落下しない。
+  // ==========================================================
+
+  const isUpSwipe = totalDy < -20 && Math.abs(totalDy) > Math.abs(totalDx) * 1.3;
+
+  if (startedInside && endedInside && isUpSwipe && currentBlock && !paused && !mergeLock) {
     // 一気に最下部まで落とす
     while (canMove(currentBlock.x, currentBlock.y + 1)) {
       currentBlock.y++;

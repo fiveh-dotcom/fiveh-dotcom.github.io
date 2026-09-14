@@ -55,18 +55,22 @@ function resizeCanvases() {
   nextCanvas.width = Math.floor(nextWidth);
   nextCanvas.height = Math.floor((nextWidth * 3) / 2);
 
-  // Canvasのサイズ変更で描画内容が消えるため、盤面を再描画
-  if (gameStarted) {
+  // ============================================================
+  // リサイズ後の再描画
+  //
+  // Canvasのwidth / heightを変更すると描画内容が消えるため、
+  // 現在のゲーム状態に応じて盤面を再描画する。
+  // ============================================================
+
+  if (gameStarted || gameOver || gameCleared) {
     drawGrid();
   }
 
   // ゲーム終了後は結果表示も再描画
-  if (gameOver || gameCleared) {
-    if (gameOver) {
-      drawGameResult("GAME OVER");
-    } else if (gameCleared) {
-      drawGameResult("GAME CLEAR");
-    }
+  if (gameOver) {
+    drawGameResult("GAME OVER");
+  } else if (gameCleared) {
+    drawGameResult("GAME CLEAR");
   }
 }
 
@@ -205,7 +209,6 @@ function roundRectSafe(ctx, x, y, width, height, radius) {
 // ============================================================
 // ブロック共通描画
 //
-// ・Block Dropping Merge風
 // ・角は少し丸める
 // ・濃い外周＋細い内枠
 // ・4096以上は金色の特別フレーム＋王冠

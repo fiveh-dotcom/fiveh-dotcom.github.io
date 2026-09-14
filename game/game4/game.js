@@ -194,7 +194,7 @@ const blockShapes = [
   },
 
   // ===== 爆弾
-  { shape: [[1]], weight: 0.4, special: "rainbow" },
+  { shape: [[1]], weight: 0.4, special: "bomb" },
 ];
 
 /* =========================
@@ -293,7 +293,15 @@ addRotations([[1, 1, 1, 1]], 1.5);
 /* ========================= */
 
 function randomColor() {
-  const colors = ["#f55", "#5f5", "#55f", "#ff5", "#5ff", "#f5f"];
+  const colors = [
+    "#ff5555", // 赤
+    "#55ff55", // 緑
+    "#5555ff", // 青
+    "#ffff55", // 黄
+    "#55ffff", // シアン
+    "#ff55ff", // マゼンタ
+  ];
+
   return colors[Math.floor(Math.random() * colors.length)];
 }
 
@@ -374,12 +382,150 @@ function generateBlocks() {
 
     currentBlocks.push({
       shape: JSON.parse(JSON.stringify(data.shape)),
-      color: data.special === "rainbow" ? "rainbow" : randomColor(),
+      color: data.special === "bomb" ? "bomb" : randomColor(),
       special: data.special || null,
     });
   }
 
   drawNextBlocks();
+}
+
+/* =========================
+   立体ブロック描画
+   ・中央の面
+   ・上面 / 左面を明るく
+   ・右面 / 下面を暗く
+   ・宝石風の立体感
+========================= */
+
+function drawBlock(ctxRef, x, y, size, color, alpha = 1) {
+  const gap = 0;
+  const s = size;
+
+  const px = x + gap;
+  const py = y + gap;
+
+  // 立体部分の幅
+  const bevel = Math.max(3, s * 0.16);
+
+  // ----------------------------------------------------------
+  // 色を明るく / 暗くする
+  // ----------------------------------------------------------
+
+  function adjustColor(hex, amount) {
+    const value = hex.replace("#", "");
+
+    const r = parseInt(value.substring(0, 2), 16);
+    const g = parseInt(value.substring(2, 4), 16);
+    const b = parseInt(value.substring(4, 6), 16);
+
+    const nr = Math.max(0, Math.min(255, r + amount));
+    const ng = Math.max(0, Math.min(255, g + amount));
+    const nb = Math.max(0, Math.min(255, b + amount));
+
+    return "#" + nr.toString(16).padStart(2, "0") + ng.toString(16).padStart(2, "0") + nb.toString(16).padStart(2, "0");
+  }
+
+  const topColor = adjustColor(color, 45);
+  const leftColor = adjustColor(color, 25);
+  const rightColor = adjustColor(color, -45);
+  const bottomColor = adjustColor(color, -65);
+
+  ctxRef.save();
+
+  ctxRef.globalAlpha = alpha;
+
+  // ----------------------------------------------------------
+  // 外周
+  // ----------------------------------------------------------
+
+  ctxRef.fillStyle = adjustColor(color, -80);
+  ctxRef.fillRect(px, py, s, s);
+
+  // ----------------------------------------------------------
+  // 上面
+  // ----------------------------------------------------------
+
+  ctxRef.fillStyle = topColor;
+
+  ctxRef.beginPath();
+  ctxRef.moveTo(px, py);
+  ctxRef.lineTo(px + s, py);
+  ctxRef.lineTo(px + s - bevel, py + bevel);
+  ctxRef.lineTo(px + bevel, py + bevel);
+  ctxRef.closePath();
+  ctxRef.fill();
+
+  // ----------------------------------------------------------
+  // 左面
+  // ----------------------------------------------------------
+
+  ctxRef.fillStyle = leftColor;
+
+  ctxRef.beginPath();
+  ctxRef.moveTo(px, py);
+  ctxRef.lineTo(px + bevel, py + bevel);
+  ctxRef.lineTo(px + bevel, py + s - bevel);
+  ctxRef.lineTo(px, py + s);
+  ctxRef.closePath();
+  ctxRef.fill();
+
+  // ----------------------------------------------------------
+  // 右面
+  // ----------------------------------------------------------
+
+  ctxRef.fillStyle = rightColor;
+
+  ctxRef.beginPath();
+  ctxRef.moveTo(px + s, py);
+  ctxRef.lineTo(px + s, py + s);
+  ctxRef.lineTo(px + s - bevel, py + s - bevel);
+  ctxRef.lineTo(px + s - bevel, py + bevel);
+  ctxRef.closePath();
+  ctxRef.fill();
+
+  // ----------------------------------------------------------
+  // 下面
+  // ----------------------------------------------------------
+
+  ctxRef.fillStyle = bottomColor;
+
+  ctxRef.beginPath();
+  ctxRef.moveTo(px, py + s);
+  ctxRef.lineTo(px + s, py + s);
+  ctxRef.lineTo(px + s - bevel, py + s - bevel);
+  ctxRef.lineTo(px + bevel, py + s - bevel);
+  ctxRef.closePath();
+  ctxRef.fill();
+
+  // ----------------------------------------------------------
+  // 中央の面
+  // ----------------------------------------------------------
+
+  ctxRef.fillStyle = color;
+
+  ctxRef.fillRect(px + bevel, py + bevel, s - bevel * 2, s - bevel * 2);
+
+  ctxRef.restore();
+}
+
+/* =========================
+   ゴーストブロック描画
+   ・置く予定の位置を表示
+   ・マス間の隙間なし
+   ・外周を暗くせず、色を均一に表示
+========================= */
+
+function drawGhostBlock(ctxRef, x, y, size, color, alpha = 1) {
+  ctxRef.save();
+
+  ctxRef.globalAlpha = alpha;
+  ctxRef.fillStyle = color;
+
+  // 隙間なしで全面を塗る
+  ctxRef.fillRect(x, y, size, size);
+
+  ctxRef.restore();
 }
 
 /* =========================
@@ -469,11 +615,10 @@ function drawNextBlocks() {
       for (let x = 0; x < block.shape[y].length; x++) {
         if (!block.shape[y][x]) continue;
 
-        if (block.special === "rainbow") {
+        if (block.special === "bomb") {
           drawBombTile(ctx2, x * size + 10, y * size + 10, size);
         } else {
-          ctx2.fillStyle = block.color;
-          ctx2.fillRect(x * size + 10, y * size + 10, size - 2, size - 2);
+          drawBlock(ctx2, x * size + 10, y * size + 10, size, block.color);
         }
       }
     }
@@ -513,9 +658,7 @@ function drawGhost() {
         continue;
       }
 
-      ctx.fillStyle = ok ? "#0f0" : "red";
-
-      ctx.fillRect(px * tileSize, py * tileSize, tileSize - 2, tileSize - 2);
+      drawGhostBlock(ctx, px * tileSize, py * tileSize, tileSize, ok ? "#0f0" : "#f00", 0.4);
     }
   }
 
@@ -534,13 +677,13 @@ function drawGhost() {
 
       ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
 
-      ctx.fillRect(px, py, tileSize - 2, tileSize - 2);
+      ctx.fillRect(px, py, tileSize, tileSize);
     });
 
     ctx.restore();
   }
 
-  if (block.special === "rainbow" && ok) {
+  if (block.special === "bomb" && ok) {
     drawExplosionPreview(gx, gy);
   }
 }
@@ -594,11 +737,10 @@ function drawGrid() {
     for (let x = 0; x < cols; x++) {
       if (!grid[y][x]) continue;
 
-      if (grid[y][x] === "rainbow") {
+      if (grid[y][x] === "bomb") {
         drawBombTile(ctx, x * tileSize, y * tileSize, tileSize);
       } else {
-        ctx.fillStyle = grid[y][x];
-        ctx.fillRect(x * tileSize, y * tileSize, tileSize - 2, tileSize - 2);
+        drawBlock(ctx, x * tileSize, y * tileSize, tileSize, grid[y][x]);
       }
     }
   }
@@ -627,11 +769,10 @@ function drawOverlay() {
       const px = baseX + x * tileSize;
       const py = baseY + y * tileSize;
 
-      if (b.special === "rainbow") {
+      if (b.special === "bomb") {
         drawBombTile(overlayCtx, px, py, tileSize);
       } else {
-        overlayCtx.fillStyle = b.color;
-        overlayCtx.fillRect(px, py, tileSize - 2, tileSize - 2);
+        drawBlock(overlayCtx, px, py, tileSize, b.color);
       }
     }
   }
@@ -671,7 +812,7 @@ function getClearingCells(block, gx, gy) {
         return [];
       }
 
-      testGrid[py][px] = block.special === "rainbow" ? "rainbow" : block.color;
+      testGrid[py][px] = block.special === "bomb" ? "bomb" : block.color;
     }
   }
 
@@ -679,7 +820,7 @@ function getClearingCells(block, gx, gy) {
 
   // 揃った行
   for (let y = 0; y < rows; y++) {
-    if (testGrid[y].every((cell) => cell)) {
+    if (testGrid[y].every((cell) => cell && cell !== "bomb")) {
       for (let x = 0; x < cols; x++) {
         clearing.push({ x, y });
       }
@@ -691,7 +832,7 @@ function getClearingCells(block, gx, gy) {
     let full = true;
 
     for (let y = 0; y < rows; y++) {
-      if (!testGrid[y][x]) {
+      if (!testGrid[y][x] || testGrid[y][x] === "bomb") {
         full = false;
         break;
       }
@@ -712,7 +853,7 @@ function clearLines() {
   let cleared = 0;
 
   for (let y = 0; y < rows; y++) {
-    if (grid[y].every((c) => c)) {
+    if (grid[y].every((c) => c && c !== "bomb")) {
       grid[y].fill(0);
       cleared++;
     }
@@ -722,11 +863,16 @@ function clearLines() {
     let full = true;
 
     for (let y = 0; y < rows; y++) {
-      if (!grid[y][x]) full = false;
+      if (!grid[y][x] || grid[y][x] === "bomb") {
+        full = false;
+        break;
+      }
     }
 
     if (full) {
-      for (let y = 0; y < rows; y++) grid[y][x] = 0;
+      for (let y = 0; y < rows; y++) {
+        grid[y][x] = 0;
+      }
       cleared++;
     }
   }
@@ -821,7 +967,7 @@ function endDrag() {
       }
     }
 
-    if (block.special === "rainbow") {
+    if (block.special === "bomb") {
       const range = 2;
 
       for (let dy = -range; dy <= range; dy++) {

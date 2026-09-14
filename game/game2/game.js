@@ -30,18 +30,22 @@ function resizeCanvases() {
     drawNextBlocks();
   }
 
-  // Canvasのサイズ変更で描画内容が消えるため、盤面を再描画
-  if (gameStarted) {
+  // ============================================================
+  // リサイズ後の再描画
+  //
+  // Canvasのwidth / heightを変更すると描画内容が消えるため、
+  // 現在のゲーム状態に応じて盤面を再描画する。
+  // ============================================================
+
+  if (gameStarted || gameOver || gameCleared) {
     drawGrid();
   }
 
   // ゲーム終了後は結果表示も再描画
-  if (gameOver || gameCleared) {
-    if (gameOver) {
-      drawGameResult("GAME OVER");
-    } else if (gameCleared) {
-      drawGameResult("GAME CLEAR");
-    }
+  if (gameOver) {
+    drawGameResult("GAME OVER");
+  } else if (gameCleared) {
+    drawGameResult("GAME CLEAR");
   }
 }
 
@@ -167,6 +171,135 @@ function endGame(result) {
   document.getElementById("startBtn").textContent = "もう一度プレイ";
 }
 
+// ============================================================
+// 立体ブロック描画
+//
+// ・中央に平らな面
+// ・上下左右に斜めのベベル面
+// ・上・左は明るく
+// ・右・下は暗く
+// ・宝石／立体ブロック風
+// ============================================================
+
+function drawBlockPixel(ctx, px, py, size, color) {
+  // ベベルの深さ
+  const bevel = size * 0.16;
+
+  // ----------------------------------------------------------
+  // 色を明るく／暗くする
+  // ----------------------------------------------------------
+
+  function adjustColor(color, amount) {
+    const match = color.match(/\d+/g);
+
+    if (!match || match.length < 3) {
+      return color;
+    }
+
+    const r = Math.max(0, Math.min(255, Number(match[0]) + amount));
+    const g = Math.max(0, Math.min(255, Number(match[1]) + amount));
+    const b = Math.max(0, Math.min(255, Number(match[2]) + amount));
+
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  // 各面の色
+  const topColor = adjustColor(color, 55);
+  const leftColor = adjustColor(color, 35);
+  const rightColor = adjustColor(color, -35);
+  const bottomColor = adjustColor(color, -60);
+
+  // ----------------------------------------------------------
+  // 中央面の座標
+  // ----------------------------------------------------------
+
+  const x1 = px + bevel;
+  const y1 = py + bevel;
+
+  const x2 = px + size - bevel;
+  const y2 = py + size - bevel;
+
+  // ----------------------------------------------------------
+  // 上面
+  // ----------------------------------------------------------
+
+  ctx.beginPath();
+
+  ctx.moveTo(px, py);
+  ctx.lineTo(px + size, py);
+  ctx.lineTo(x2, y1);
+  ctx.lineTo(x1, y1);
+
+  ctx.closePath();
+
+  ctx.fillStyle = topColor;
+  ctx.fill();
+
+  // ----------------------------------------------------------
+  // 左面
+  // ----------------------------------------------------------
+
+  ctx.beginPath();
+
+  ctx.moveTo(px, py);
+  ctx.lineTo(x1, y1);
+  ctx.lineTo(x1, y2);
+  ctx.lineTo(px, py + size);
+
+  ctx.closePath();
+
+  ctx.fillStyle = leftColor;
+  ctx.fill();
+
+  // ----------------------------------------------------------
+  // 右面
+  // ----------------------------------------------------------
+
+  ctx.beginPath();
+
+  ctx.moveTo(px + size, py);
+  ctx.lineTo(px + size, py + size);
+  ctx.lineTo(x2, y2);
+  ctx.lineTo(x2, y1);
+
+  ctx.closePath();
+
+  ctx.fillStyle = rightColor;
+  ctx.fill();
+
+  // ----------------------------------------------------------
+  // 下面
+  // ----------------------------------------------------------
+
+  ctx.beginPath();
+
+  ctx.moveTo(px, py + size);
+  ctx.lineTo(px + size, py + size);
+  ctx.lineTo(x2, y2);
+  ctx.lineTo(x1, y2);
+
+  ctx.closePath();
+
+  ctx.fillStyle = bottomColor;
+  ctx.fill();
+
+  // ----------------------------------------------------------
+  // 中央の平面
+  // ----------------------------------------------------------
+
+  ctx.beginPath();
+
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y1);
+  ctx.lineTo(x2, y2);
+  ctx.lineTo(x1, y2);
+
+  ctx.closePath();
+
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
 function drawGrid() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -175,19 +308,30 @@ function drawGrid() {
       const isClearingLine = clearingLines.includes(y);
 
       if (isClearingLine) {
-        // 消える行を光らせる
         const progress = (performance.now() - clearAnimationStart) / clearAnimationDuration;
 
-        const alpha = 0.4 + Math.sin(progress * Math.PI * 4) * 0.4;
+        const alpha = 0.2 + Math.sin(progress * Math.PI * 4) * 0.5;
 
-        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+        // 元のブロック色を維持して立体描画
+        if (grid[y][x]) {
+          drawBlockPixel(ctx, x * blockSize, y * blockSize, blockSize, grid[y][x]);
+
+          // 白い光を薄く重ねる
+          ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+          ctx.fillRect(x * blockSize, y * blockSize, blockSize, blockSize);
+        }
+      } else if (grid[y][x]) {
+        drawBlockPixel(ctx, x * blockSize, y * blockSize, blockSize, grid[y][x]);
       } else {
-        ctx.fillStyle = grid[y][x] || "#111";
+        ctx.fillStyle = "#111";
+        ctx.fillRect(x * blockSize, y * blockSize, blockSize, blockSize);
       }
-
-      ctx.fillRect(x * blockSize, y * blockSize, blockSize - 2, blockSize - 2);
     }
   }
+
+  // ----------------------------------------------------------
+  // 落下中のブロック
+  // ----------------------------------------------------------
 
   if (currentPiece) {
     currentPiece.shape.forEach((row, dy) => {
@@ -197,8 +341,7 @@ function drawGrid() {
           const py = pieceY + dy;
 
           if (py >= 0) {
-            ctx.fillStyle = currentPiece.color;
-            ctx.fillRect(px * blockSize, py * blockSize, blockSize - 2, blockSize - 2);
+            drawBlockPixel(ctx, px * blockSize, py * blockSize, blockSize, currentPiece.color);
           }
         }
       });
@@ -224,13 +367,7 @@ function drawNextBlocks() {
     shape.forEach((row, dy) => {
       row.forEach((val, dx) => {
         if (val) {
-          nextCtx.fillStyle = p.color;
-          nextCtx.fillRect(
-            offsetX + dx * nextBlockSize,
-            offsetY + dy * nextBlockSize,
-            nextBlockSize - 2,
-            nextBlockSize - 2,
-          );
+          drawBlockPixel(nextCtx, offsetX + dx * nextBlockSize, offsetY + dy * nextBlockSize, nextBlockSize, p.color);
         }
       });
     });
@@ -327,7 +464,18 @@ function clearLines() {
 function rotatePiece() {
   const shape = currentPiece.shape;
   const rotated = shape[0].map((_, i) => shape.map((row) => row[i]).reverse());
-  if (canMove(0, 0, rotated)) currentPiece.shape = rotated;
+
+  // 回転位置を試す
+  // Iミノは右端・左端で3マスずらす必要がある場合がある
+  const offsets = [0, -1, 1, -2, 2, -3, 3];
+
+  for (const offset of offsets) {
+    if (canMove(offset, 0, rotated)) {
+      pieceX += offset;
+      currentPiece.shape = rotated;
+      return;
+    }
+  }
 }
 
 // キーボード操作

@@ -120,11 +120,11 @@ function createBlock(x, y, width) {
     color: color,
 
     // 描画用カラーを生成時にキャッシュ
-    dark: darkenColor(color, 0.5),
-    light: lightenColor(color, 0.01),
-    left: darkenColor(color, 0.18),
+    dark: color,
+    light: lightenColor(color, 0.35),
+    left: darkenColor(color, 0.08),
     bottom: darkenColor(color, 0.3),
-    right: darkenColor(color, 0.38),
+    right: darkenColor(color, 0.18),
   };
 }
 
@@ -1223,8 +1223,6 @@ function endGame() {
 
   draw();
 
-  // alert("ゲームオーバー！\nスコア: " + score);
-
   document.getElementById("startBtn").textContent = "もう一度プレイ";
 }
 
@@ -1588,6 +1586,12 @@ function hexToRgb(hex) {
 
 // ============================================================
 // ブロックを描画
+//
+// ・ブロック本体は元の色をそのまま使用
+// ・上面は明るく
+// ・左右と下面は暗く
+// ・ブロックの形状は width をそのまま維持
+// ・1マス単位には分割しない
 // ============================================================
 
 function drawSingleBlock(block, drawY, scale = 1) {
@@ -1607,6 +1611,9 @@ function drawSingleBlock(block, drawY, scale = 1) {
   const bw = width - padding * 2;
   const bh = height - padding * 2;
 
+  // 立体部分の深さ
+  const bevel = Math.min(5, bw / 2, bh / 2);
+
   const centerX = bx + bw / 2;
   const centerY = by + bh / 2;
 
@@ -1622,9 +1629,11 @@ function drawSingleBlock(block, drawY, scale = 1) {
 
   // ============================================================
   // ブロック本体
+  //
+  // 中央の明るい面
   // ============================================================
 
-  ctx.fillStyle = block.dark;
+  ctx.fillStyle = block.color;
 
   ctx.beginPath();
   ctx.rect(bx, by, bw, bh);
@@ -1632,6 +1641,8 @@ function drawSingleBlock(block, drawY, scale = 1) {
 
   // ============================================================
   // 上面
+  //
+  // 明るいハイライト
   // ============================================================
 
   ctx.fillStyle = block.light;
@@ -1639,8 +1650,8 @@ function drawSingleBlock(block, drawY, scale = 1) {
   ctx.beginPath();
   ctx.moveTo(bx, by);
   ctx.lineTo(bx + bw, by);
-  ctx.lineTo(bx + bw - 5, by + 5);
-  ctx.lineTo(bx + 5, by + 5);
+  ctx.lineTo(bx + bw - bevel, by + bevel);
+  ctx.lineTo(bx + bevel, by + bevel);
   ctx.closePath();
   ctx.fill();
 
@@ -1652,21 +1663,23 @@ function drawSingleBlock(block, drawY, scale = 1) {
 
   ctx.beginPath();
   ctx.moveTo(bx, by);
-  ctx.lineTo(bx + 5, by + 5);
-  ctx.lineTo(bx + 5, by + bh - 5);
+  ctx.lineTo(bx + bevel, by + bevel);
+  ctx.lineTo(bx + bevel, by + bh - bevel);
   ctx.lineTo(bx, by + bh);
   ctx.closePath();
   ctx.fill();
 
   // ============================================================
   // 下面
+  //
+  // 暗く見える部分
   // ============================================================
 
   ctx.fillStyle = block.bottom;
 
   ctx.beginPath();
-  ctx.moveTo(bx + 5, by + bh - 5);
-  ctx.lineTo(bx + bw - 5, by + bh - 5);
+  ctx.moveTo(bx + bevel, by + bh - bevel);
+  ctx.lineTo(bx + bw - bevel, by + bh - bevel);
   ctx.lineTo(bx + bw, by + bh);
   ctx.lineTo(bx, by + bh);
   ctx.closePath();
@@ -1680,8 +1693,8 @@ function drawSingleBlock(block, drawY, scale = 1) {
 
   ctx.beginPath();
   ctx.moveTo(bx + bw, by);
-  ctx.lineTo(bx + bw - 5, by + 5);
-  ctx.lineTo(bx + bw - 5, by + bh - 5);
+  ctx.lineTo(bx + bw - bevel, by + bevel);
+  ctx.lineTo(bx + bw - bevel, by + bh - bevel);
   ctx.lineTo(bx + bw, by + bh);
   ctx.closePath();
   ctx.fill();

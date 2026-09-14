@@ -24,18 +24,18 @@ let mergeLock = false; // 合体中フラグ
 let isMergeAnimating = false; // マージアニメーション中フラグ
 
 const colors = {
-  2: "#ff6666",
-  4: "#ffcc66",
-  8: "#66ff66",
-  16: "#66ccff",
-  32: "#cc66ff",
-  64: "#ff66ff",
-  128: "#ff9966",
-  256: "#66ffff",
-  512: "#ffff66",
-  1024: "#ff66ff",
-  2048: "#00ffff",
-  4096: "#0011ff",
+  2: "#D95ABF", // ピンク
+  4: "#82B64A", // グリーン
+  8: "#42C6C7", // シアン
+  16: "#637DDA", // ブルー
+  32: "#E58752", // オレンジ
+  64: "#9775FF", // パープル
+  128: "#8DB6C7", // ライトブルー
+  256: "#FF4D70", // ピンク
+  512: "#00B878", // グリーン
+  1024: "#9BA8A8", // グレー
+  2048: "#FF8200", // オレンジ
+  4096: "#A05BE8", // パープル
 };
 
 function resizeCanvases() {
@@ -178,13 +178,35 @@ function drawCell(x, y, value, scale = 1) {
   const centerX = (x + 0.5) * blockSize;
   const centerY = (y + 0.5) * blockSize;
 
-  const size = (blockSize - 2) * scale;
+  const size = blockSize * scale;
 
   drawBlock(ctx, centerX, centerY, size, value);
 }
 
 // ============================================================
+// 安全な角丸矩形
+//
+// ・width / height が小さくなってもエラーにしない
+// ・radius が負にならないようにする
+// ・radius が矩形サイズを超えないようにする
+// ============================================================
+
+function roundRectSafe(ctx, x, y, width, height, radius) {
+  const w = Math.max(0, width);
+  const h = Math.max(0, height);
+  const r = Math.max(0, Math.min(radius, w / 2, h / 2));
+
+  ctx.roundRect(x, y, w, h, r);
+}
+
+// ============================================================
 // ブロック共通描画
+//
+// ・Block Dropping Merge風
+// ・角は少し丸める
+// ・濃い外周＋細い内枠
+// ・4096以上は金色の特別フレーム＋王冠
+// ・4096以上は数字を少し小さくして下側へ配置
 // ============================================================
 
 function drawBlock(ctx, centerX, centerY, size, value) {
@@ -192,35 +214,385 @@ function drawBlock(ctx, centerX, centerY, size, value) {
   const py = centerY - size / 2;
 
   // ----------------------------------------------------------
-  // ブロック本体
+  // 高レベル判定
   // ----------------------------------------------------------
+
+  const isHigh = value >= 1024;
+  const isSpecial = value >= 4096;
+
+  // 角の丸み
+  const radius = Math.min(size * 0.12, 6, size / 2);
+
+  // 外枠の太さ
+  const border = Math.min(Math.max(1, size * 0.025), size / 4);
+
+  // ==========================================================
+  // 外側のフレーム
+  // ==========================================================
+
+  ctx.beginPath();
+
+  roundRectSafe(ctx, px, py, size, size, radius);
+
+  ctx.fillStyle = isSpecial ? "#3A2A18" : "#222";
+
+  ctx.fill();
+
+  // ==========================================================
+  // タイル本体
+  // ==========================================================
+
+  const innerSize = Math.max(0, size - border * 2);
+  const innerRadius = Math.min(Math.max(0, radius - border), innerSize / 2);
+
+  ctx.beginPath();
+
+  roundRectSafe(ctx, px + border, py + border, innerSize, innerSize, innerRadius);
 
   ctx.fillStyle = getColor(value);
-  ctx.fillRect(px, py, size, size);
+  ctx.fill();
 
-  // ----------------------------------------------------------
+  // ==========================================================
+  // 通常の内側ライン
+  // ==========================================================
+
+  const lineInset = border + 1;
+  const lineSize = Math.max(0, size - lineInset * 2);
+
+  const lineRadius = Math.min(Math.max(0, radius - lineInset), lineSize / 2);
+
+  ctx.beginPath();
+
+  roundRectSafe(ctx, px + lineInset, py + lineInset, lineSize, lineSize, lineRadius);
+
+  ctx.strokeStyle = isSpecial ? "#FFD75A" : isHigh ? "rgba(255, 255, 255, 0.45)" : "rgba(255, 255, 255, 0.25)";
+
+  ctx.lineWidth = isSpecial
+    ? Math.min(Math.max(1, size * 0.035), lineSize / 2)
+    : isHigh
+      ? Math.min(Math.max(1, size * 0.03), lineSize / 2)
+      : 1;
+
+  ctx.stroke();
+
+  // ==========================================================
+  // 上側ハイライト
+  // ==========================================================
+
+  ctx.beginPath();
+
+  ctx.moveTo(px + border + radius * 0.5, py + border + 1);
+
+  ctx.lineTo(px + size - border - radius * 0.5, py + border + 1);
+
+  ctx.strokeStyle = isSpecial ? "rgba(255, 230, 130, 0.95)" : "rgba(255, 255, 255, 0.35)";
+
+  ctx.lineWidth = 1;
+
+  ctx.stroke();
+
+  // ==========================================================
+  // 1024以上：銀色の特別フレーム
+  //
+  // 4096未満は銀枠
+  // 4096以上は金枠＋王冠
+  // ==========================================================
+
+  if (isHigh && !isSpecial) {
+    const silver = "#E2E5E9";
+
+    const frameInset = Math.min(Math.max(1, size * 0.07), size / 4);
+
+    const frameSize = Math.max(0, size - frameInset * 2);
+
+    const frameRadius = Math.min(Math.max(0, radius - frameInset * 0.5), frameSize / 2);
+
+    ctx.beginPath();
+
+    roundRectSafe(ctx, px + frameInset, py + frameInset, frameSize, frameSize, frameRadius);
+
+    ctx.strokeStyle = silver;
+    ctx.lineWidth = Math.min(Math.max(1, size * 0.035), frameSize / 2);
+
+    ctx.stroke();
+  }
+
+  // ==========================================================
+  // 4096以上：金色の特別フレーム
+  //
+  // ブロックの外には出さず、
+  // ブロックサイズの内側に金枠を追加する
+  // ==========================================================
+
+  if (isSpecial) {
+    const gold = "#FFD34D";
+
+    // --------------------------------------------------------
+    // 金色の内側フレーム
+    // --------------------------------------------------------
+
+    const frameInset = Math.min(Math.max(1, size * 0.07), size / 4);
+
+    const frameSize = Math.max(0, size - frameInset * 2);
+
+    const frameRadius = Math.min(Math.max(0, radius - frameInset * 0.5), frameSize / 2);
+
+    ctx.beginPath();
+
+    roundRectSafe(ctx, px + frameInset, py + frameInset, frameSize, frameSize, frameRadius);
+
+    ctx.strokeStyle = gold;
+    ctx.lineWidth = Math.min(Math.max(1, size * 0.035), frameSize / 2);
+
+    ctx.stroke();
+
+    // --------------------------------------------------------
+    // 四隅の金色装飾
+    // --------------------------------------------------------
+
+    const ornament = Math.max(3, size * 0.09);
+
+    const offset = frameInset + size * 0.025;
+
+    ctx.strokeStyle = "#FFE27A";
+    ctx.lineWidth = Math.max(1, size * 0.022);
+    ctx.lineCap = "round";
+
+    // 左上
+    ctx.beginPath();
+    ctx.moveTo(px + offset, py + offset + ornament);
+    ctx.lineTo(px + offset, py + offset);
+    ctx.lineTo(px + offset + ornament, py + offset);
+    ctx.stroke();
+
+    // 右上
+    ctx.beginPath();
+    ctx.moveTo(px + size - offset - ornament, py + offset);
+    ctx.lineTo(px + size - offset, py + offset);
+    ctx.lineTo(px + size - offset, py + offset + ornament);
+    ctx.stroke();
+
+    // 左下
+    ctx.beginPath();
+    ctx.moveTo(px + offset, py + size - offset - ornament);
+    ctx.lineTo(px + offset, py + size - offset);
+    ctx.lineTo(px + offset + ornament, py + size - offset);
+    ctx.stroke();
+
+    // 右下
+    ctx.beginPath();
+    ctx.moveTo(px + size - offset - ornament, py + size - offset);
+    ctx.lineTo(px + size - offset, py + size - offset);
+    ctx.lineTo(px + size - offset, py + size - offset - ornament);
+    ctx.stroke();
+
+    ctx.lineCap = "butt";
+
+    // --------------------------------------------------------
+    // 王冠
+    // --------------------------------------------------------
+
+    drawCrown(ctx, centerX, py + size * 0.3, size * 0.34);
+  }
+
+  // ==========================================================
   // 数字
-  // ----------------------------------------------------------
-
-  ctx.fillStyle = "#000";
+  // ==========================================================
 
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
   const text = formatNumber(value);
 
-  drawCenteredText(ctx, text, centerX, centerY, size * 0.8, size * 0.5);
+  // 4096以上は数字を少し下へ
+  const textY = isSpecial ? centerY + size * 0.15 : centerY;
+
+  // 4096以上は少し小さくする
+  const textMaxWidth = isSpecial ? size * 0.72 : size * 0.8;
+
+  const textBaseSize = isSpecial ? size * 0.44 : size * 0.5;
 
   // ----------------------------------------------------------
-  // 1024以上
+  // 文字の影・縁
   // ----------------------------------------------------------
 
-  if (value >= 1024) {
-    ctx.strokeStyle = "rgba(255,255,255,0.6)";
-    ctx.lineWidth = 2;
+  ctx.strokeStyle = isSpecial ? "rgba(60, 35, 0, 0.8)" : "rgba(0, 0, 0, 0.45)";
 
-    ctx.strokeRect(px + 2, py + 2, size - 4, size - 4);
+  ctx.lineWidth = Math.max(1.5, size * 0.025);
+  ctx.lineJoin = "round";
+
+  drawCenteredText(ctx, text, centerX, textY, textMaxWidth, textBaseSize);
+
+  // ----------------------------------------------------------
+  // 数字本体
+  // ----------------------------------------------------------
+
+  ctx.fillStyle = "#fff";
+
+  drawCenteredText(ctx, text, centerX, textY, textMaxWidth, textBaseSize);
+}
+
+// ============================================================
+// 王冠描画
+//
+// ・4096以上専用
+// ・数字の上に配置
+// ・左・中央・右の3つの尖った山で王冠らしくする
+// ・中央の山を一番高くする
+// ・下に太い帯を付ける
+// ・3つの宝石を配置
+// ============================================================
+
+function drawCrown(ctx, centerX, centerY, width) {
+  const height = width * 0.78;
+
+  const left = centerX - width / 2;
+  const right = centerX + width / 2;
+
+  const top = centerY - height / 2;
+  const bottom = centerY + height / 2;
+
+  // ==========================================================
+  // 王冠本体
+  // ==========================================================
+
+  ctx.beginPath();
+
+  ctx.moveTo(left, bottom);
+
+  // ==========================================================
+  // 左の山
+  // ==========================================================
+
+  // 左端から左の山へ
+  ctx.lineTo(left, top + height * 0.3);
+
+  // 左の谷
+  ctx.lineTo(centerX - width * 0.24, top + height * 0.62);
+
+  // ==========================================================
+  // 中央の山
+  // ==========================================================
+
+  ctx.lineTo(centerX, top + height * 0.08);
+
+  // ==========================================================
+  // 右の谷
+  // ==========================================================
+
+  ctx.lineTo(centerX + width * 0.24, top + height * 0.62);
+
+  // ==========================================================
+  // 右の山
+  // ==========================================================
+
+  // 右の山の頂点
+  ctx.lineTo(right, top + height * 0.3);
+
+  // 右端へ
+  ctx.lineTo(right, bottom);
+
+  ctx.closePath();
+
+  // 王冠本体
+  ctx.fillStyle = "#FFD34D";
+  ctx.fill();
+
+  // 王冠の外周
+  ctx.strokeStyle = "#FFE27A";
+  ctx.lineWidth = Math.max(1, width * 0.035);
+  ctx.lineJoin = "round";
+  ctx.stroke();
+
+  // ==========================================================
+  // 王冠の帯
+  // ==========================================================
+
+  const bandTop = bottom - height * 0.25;
+  const bandHeight = height * 0.25;
+  const bandWidth = width * 0.92;
+  const bandRadius = Math.min(height * 0.04, bandWidth / 2, bandHeight / 2);
+
+  ctx.beginPath();
+
+  roundRectSafe(ctx, left + width * 0.04, bandTop, bandWidth, bandHeight, bandRadius);
+
+  ctx.fillStyle = "#FFE27A";
+  ctx.fill();
+
+  // 帯の下側ライン
+  ctx.beginPath();
+
+  ctx.moveTo(left + width * 0.06, bottom - height * 0.04);
+
+  ctx.lineTo(right - width * 0.06, bottom - height * 0.04);
+
+  ctx.strokeStyle = "#D99E25";
+  ctx.lineWidth = Math.max(1, width * 0.025);
+  ctx.stroke();
+
+  // ==========================================================
+  // 王冠の宝石
+  //
+  // 左   ：ルビー
+  // 中央 ：サファイア
+  // 右   ：エメラルド
+  // ==========================================================
+
+  const jewelRadius = Math.max(1, width * 0.045);
+
+  function drawJewel(x, y, radius, darkColor, mainColor, lightColor) {
+    // --------------------------------------------------------
+    // 外側
+    // --------------------------------------------------------
+
+    ctx.beginPath();
+
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+
+    ctx.fillStyle = darkColor;
+    ctx.fill();
+
+    // --------------------------------------------------------
+    // 宝石本体
+    // --------------------------------------------------------
+
+    ctx.beginPath();
+
+    ctx.arc(x, y, radius * 0.78, 0, Math.PI * 2);
+
+    ctx.fillStyle = mainColor;
+    ctx.fill();
+
+    // --------------------------------------------------------
+    // ハイライト
+    // --------------------------------------------------------
+
+    ctx.beginPath();
+
+    ctx.arc(x - radius * 0.25, y - radius * 0.25, radius * 0.22, 0, Math.PI * 2);
+
+    ctx.fillStyle = lightColor;
+    ctx.fill();
   }
+
+  // ----------------------------------------------------------
+  // 左：ルビー
+  // ----------------------------------------------------------
+
+  drawJewel(left + width * 0.25, bandTop + bandHeight * 0.4, jewelRadius, "#7A1020", "#E3263F", "#FF9AA5");
+
+  // ----------------------------------------------------------
+  // 中央：サファイア
+  // ----------------------------------------------------------
+
+  drawJewel(centerX, bandTop + bandHeight * 0.4, jewelRadius * 1.2, "#123A78", "#2878E8", "#A9D5FF");
+
+  // ----------------------------------------------------------
+  // 右：エメラルド
+  // ----------------------------------------------------------
+
+  drawJewel(right - width * 0.25, bandTop + bandHeight * 0.4, jewelRadius, "#075A3B", "#16B978", "#9CFFD8");
 }
 
 function drawCenteredText(ctx, text, x, y, maxWidth, baseSize) {
@@ -249,7 +621,7 @@ function drawNext() {
   const gap = 5;
 
   // Next用のタイルサイズ
-  const size = Math.min(nextCanvas.width - 4, (nextCanvas.height - gap * 2) / 3);
+  const size = Math.max(0, Math.min(nextCanvas.width - 4, (nextCanvas.height - gap * 2) / 3));
 
   nextBlocks.forEach((val, i) => {
     const x = (nextCanvas.width - size) / 2;
@@ -515,16 +887,6 @@ async function mergeAndFall(startX = null, startY = null) {
     }
 
     // ========================================================
-    // 今作ったタイルを次のマージの最優先にする
-    // ========================================================
-
-    priorityTile = {
-      x: fx,
-      y: fy,
-      value: mergedValue,
-    };
-
-    // ========================================================
     // 重力
     // ========================================================
 
@@ -532,15 +894,48 @@ async function mergeAndFall(startX = null, startY = null) {
 
     drawGrid();
 
-    await sleep(80);
-
     // ========================================================
-    // 重力後の位置を探す
-    //
-    // 同じ列を優先して探す
+    // 重力後の「直前にマージしたタイル」を探す
     // ========================================================
 
     priorityTile = findPriorityTile(mergedValue, fx, fy);
+
+    // ========================================================
+    // 次の連鎖が実際に可能か確認
+    // ========================================================
+
+    let canChain = false;
+
+    if (priorityTile) {
+      const { x, y, value } = priorityTile;
+
+      const dirs = [
+        [0, 1], // 下
+        [1, 0], // 右
+        [0, -1], // 上
+        [-1, 0], // 左
+      ];
+
+      for (const [dx, dy] of dirs) {
+        const nx = x + dx;
+        const ny = y + dy;
+
+        if (nx >= 0 && nx < cols && ny >= 0 && ny < rows && grid[ny][nx] === value) {
+          canChain = true;
+          break;
+        }
+      }
+    }
+
+    // ========================================================
+    // 連鎖が続く場合だけ少し待つ
+    //
+    // 最後のマージなら待たずに次のブロックへ進む。
+    // ========================================================
+
+    if (canChain) {
+      await sleep(80);
+    }
   }
 }
 
@@ -850,11 +1245,25 @@ canvas.addEventListener("pointermove", (e) => {
 
   e.preventDefault();
 
+  const rect = canvas.getBoundingClientRect();
+
+  // ==========================================================
+  // 指の位置
+  //
+  // canvas外へ出た場合でも、
+  // 横方向はcanvasの端より外側を移動量として扱わない。
+  //
+  // これにより、高速スワイプでclientXが大きくジャンプしても
+  // ブロックが一気に右端・左端へ飛ぶのを防ぐ。
+  // ==========================================================
+
+  const clampedX = Math.max(rect.left, Math.min(e.clientX, rect.right));
+
   // ----------------------------------------------------------
   // 指の移動量
   // ----------------------------------------------------------
 
-  const dx = e.clientX - touchPrevX;
+  const dx = clampedX - touchPrevX;
   const dy = e.clientY - touchPrevY;
 
   // ==========================================================
@@ -870,8 +1279,8 @@ canvas.addEventListener("pointermove", (e) => {
       currentBlock.x--;
     }
 
-    // 横方向の基準位置を更新
-    touchPrevX = e.clientX;
+    // 次回の横方向の基準位置
+    touchPrevX = clampedX;
   }
 
   // ==========================================================

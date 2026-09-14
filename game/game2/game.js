@@ -30,10 +30,13 @@ function resizeCanvases() {
     drawNextBlocks();
   }
 
-  // ゲーム終了後のリサイズでも盤面を再描画
-  if (gameOver || gameCleared) {
+  // Canvasのサイズ変更で描画内容が消えるため、盤面を再描画
+  if (gameStarted) {
     drawGrid();
+  }
 
+  // ゲーム終了後は結果表示も再描画
+  if (gameOver || gameCleared) {
     if (gameOver) {
       drawGameResult("GAME OVER");
     } else if (gameCleared) {

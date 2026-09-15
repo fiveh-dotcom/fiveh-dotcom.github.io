@@ -22,7 +22,7 @@ function resizeCanvases() {
 
   tileSize = Math.min(canvas.width / cols, canvas.height / rows);
 
-  touchDragOffset = tileSize * 1.75;
+  touchDragOffset = tileSize * 2;
 
   nextCanvases.forEach((nextCanvas) => {
     const rect = nextCanvas.getBoundingClientRect();
@@ -718,6 +718,7 @@ function drawGrid() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   ctx.strokeStyle = "#555";
+  ctx.lineWidth = 0.5;
 
   for (let x = 0; x <= cols; x++) {
     ctx.beginPath();

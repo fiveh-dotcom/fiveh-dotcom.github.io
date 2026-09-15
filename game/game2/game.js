@@ -361,8 +361,17 @@ function drawNextBlocks() {
     const shapeWidth = shape[0].length * nextBlockSize; // ブロックの幅
     const offsetX = (nextCanvas.width - shapeWidth) / 2; // 中央寄せ
 
+    // ----------------------------------------------------------
     // 3つのブロックを縦方向に配置
-    const offsetY = i * (nextCanvas.height / 3);
+    //
+    // 各NEXT枠を「2マス分の高さ」として扱い、
+    // 1マスしかないIミノも2マス分の中央に配置する。
+    // ----------------------------------------------------------
+
+    const areaHeight = nextCanvas.height / 3;
+    const shapeHeight = shape.length * nextBlockSize;
+
+    const offsetY = i * areaHeight + (areaHeight - shapeHeight) / 2;
 
     shape.forEach((row, dy) => {
       row.forEach((val, dx) => {

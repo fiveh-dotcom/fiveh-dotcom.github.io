@@ -79,10 +79,12 @@ function drawBall() {
 }
 
 function drawBalls() {
+  const penetrateActive = isPenetrateActive();
+
   balls.forEach((ball) => {
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-    ctx.fillStyle = ball.penetrate ? "#800080" : "#fff"; // ← 貫通中は紫
+    ctx.fillStyle = penetrateActive ? "#800080" : "#fff";
     ctx.fill();
     ctx.closePath();
   });
@@ -107,19 +109,38 @@ function createItem(x, y) {
 
 function drawItems() {
   items.forEach((item) => {
-    // 色をタイプで分ける
-    if (item.type === "extraBall")
-      ctx.fillStyle = "#0f0"; // 緑
-    else if (item.type === "speedUp")
-      ctx.fillStyle = "#ff0"; // 黄色
-    else if (item.type === "penetrate")
-      ctx.fillStyle = "#800080"; // 紫
-    else ctx.fillStyle = "#fff"; // 念のためのデフォルト
+    const centerX = item.x + item.width / 2;
+    const centerY = item.y + item.height / 2;
+
+    // アイテム本体
+    if (item.type === "extraBall") {
+      ctx.fillStyle = "#0f0";
+    } else if (item.type === "speedUp") {
+      ctx.fillStyle = "#ff0";
+    } else if (item.type === "penetrate") {
+      ctx.fillStyle = "#800080";
+    }
 
     ctx.fillRect(item.x, item.y, item.width, item.height);
+
+    // アイコン
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "bold 11px sans-serif";
+
+    if (item.type === "extraBall") {
+      ctx.fillText("+", centerX, centerY);
+    } else if (item.type === "speedUp") {
+      ctx.fillText("⚡", centerX, centerY);
+    } else if (item.type === "penetrate") {
+      ctx.fillText("→", centerX, centerY);
+    }
+
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
   });
 }
-
 function moveItems() {
   items.forEach((item, index) => {
     item.y += itemSpeed;
@@ -143,57 +164,100 @@ function moveItems() {
 
 function applyItemEffect(type) {
   if (type === "extraBall") {
+    // ==========================================================
+    // 緑：ボール追加
+    // ==========================================================
+
+    // 現在存在するボールから1つ選ぶ
     const baseBall = balls[Math.floor(Math.random() * balls.length)];
+
     balls.push({
       x: baseBall.x,
       y: baseBall.y,
       speedX: baseBall.speedX,
       speedY: -baseBall.speedY,
       radius: baseBall.radius,
-      penetrate: false, // 通常はfalse
     });
   } else if (type === "speedUp") {
+    // ==========================================================
+    // 黄：全ボールを1.5倍速
+    // ==========================================================
+
     balls.forEach((ball) => {
       ball.speedX *= 1.5;
       ball.speedY *= 1.5;
     });
   } else if (type === "penetrate") {
-    balls.forEach((ball) => {
-      ball.penetrate = true; // 通過可能に
-    });
-    // 5秒後に解除
-    setTimeout(() => {
-      balls.forEach((ball) => (ball.penetrate = false));
-    }, 5000);
+    // ==========================================================
+    // 紫：3秒間、全ボールが貫通
+    //
+    // 効果中にもう一度取得した場合は、
+    // 現在の残り時間にさらに3秒追加する。
+    // ==========================================================
+
+    penetrateTime += 3000;
   }
 }
 
 // 複数ボール用の配列
-let balls = [{ x: ballX, y: ballY, speedX: ballSpeedX, speedY: ballSpeedY, radius: ballRadius }];
+let balls = [
+  {
+    x: ballX,
+    y: ballY,
+    speedX: ballSpeedX,
+    speedY: ballSpeedY,
+    radius: ballRadius,
+  },
+];
+
+// ============================================================
+// アイテム効果
+// ============================================================
+
+// 紫（貫通）の残り時間（ミリ秒）
+let penetrateTime = 0;
+
+// 前回のフレーム時刻
+let lastTime = 0;
+
+// 現在、紫の貫通効果が有効か
+function isPenetrateActive() {
+  return penetrateTime > 0;
+}
 
 function collisionDetection() {
   blocks.forEach((row) => {
     row.forEach((b) => {
-      if (!b.destroyed) {
-        balls.forEach((ball) => {
-          if (
-            ball.x + ball.radius > b.x &&
-            ball.x - ball.radius < b.x + b.width &&
-            ball.y + ball.radius > b.y &&
-            ball.y - ball.radius < b.y + b.height
-          ) {
-            if (!ball.penetrate) ball.speedY = -ball.speedY;
-            b.destroyed = true;
-            score += 1;
-            document.getElementById("score").innerText = "Score: " + score;
+      if (b.destroyed) return;
 
-            // ここでランダムにアイテムを生成（例: 30%の確率）
-            if (Math.random() < 0.3) {
-              createItem(b.x + b.width / 2 - itemSize / 2, b.y + b.height / 2 - itemSize / 2);
-            }
+      balls.forEach((ball) => {
+        // すでにこのブロックが破壊されていたら、
+        // 同じフレーム内の別ボールでは処理しない
+        if (b.destroyed) return;
+
+        if (
+          ball.x + ball.radius > b.x &&
+          ball.x - ball.radius < b.x + b.width &&
+          ball.y + ball.radius > b.y &&
+          ball.y - ball.radius < b.y + b.height
+        ) {
+          if (!isPenetrateActive()) {
+            ball.speedY = -ball.speedY;
           }
-        });
-      }
+
+          // ブロックを破壊
+          b.destroyed = true;
+
+          // 1ブロックにつき1点
+          score += 1;
+          document.getElementById("score").innerText = "Score: " + score;
+
+          // アイテム生成
+          if (Math.random() < 0.3) {
+            createItem(b.x + b.width / 2 - itemSize / 2, b.y + b.height / 2 - itemSize / 2);
+          }
+        }
+      });
     });
   });
 }
@@ -254,6 +318,27 @@ function draw() {
   // ポーズ中はゲームの更新を行わない
   if (paused) {
     return;
+  }
+
+  // 現在の時刻を取得
+  const currentTime = performance.now();
+
+  // 初回フレームは時間差を0として扱う
+  const deltaTime = lastTime === 0 ? 0 : currentTime - lastTime;
+
+  // 現在の時刻を保存
+  lastTime = currentTime;
+
+  // ============================================================
+  // アイテム効果時間の更新
+  // ============================================================
+
+  if (penetrateTime > 0) {
+    penetrateTime -= deltaTime;
+
+    if (penetrateTime < 0) {
+      penetrateTime = 0;
+    }
   }
 
   // まずボール移動前に衝突判定
@@ -417,6 +502,10 @@ const resetDialog = createResetDialog({
   onCancel: () => {
     paused = pausedBeforeReset;
 
+    // 前回時刻をリセット
+    // 一時停止中の時間をdeltaTimeに含めない
+    lastTime = 0;
+
     // アニメーションを再開
     draw();
   },
@@ -442,6 +531,12 @@ document.getElementById("startBtn").addEventListener("click", () => {
 // ゲーム開始・リセット処理
 function startGame() {
   if (animationId) cancelAnimationFrame(animationId);
+
+  // アイテム効果をリセット
+  penetrateTime = 0;
+
+  // フレーム時間もリセット
+  lastTime = 0;
 
   // 複数ボール初期化
   balls = [
@@ -485,6 +580,11 @@ const pauseControl = createPauseButton({
 
   onResume: () => {
     paused = false;
+
+    // 再開時に前回時刻をリセットする。
+    // これにより、一時停止中の時間が
+    // deltaTime に含まれない。
+    lastTime = 0;
 
     // アニメーションを再開
     draw();

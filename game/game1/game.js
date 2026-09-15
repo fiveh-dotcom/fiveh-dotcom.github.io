@@ -3,7 +3,7 @@ const ctx = canvas.getContext("2d");
 
 const rows = 15;
 const cols = 10;
-const colors = ["#f00", "#0f0", "#00f", "#ff0"];
+const colors = ["#ff0000", "#00ff00", "#0000ff", "#ffff00"];
 let grid = [];
 let score = 0;
 let time = 120;
@@ -32,6 +32,117 @@ function drawRoundedRect(x, y, w, h, radius, color, alpha = 1) {
   ctx.closePath();
   ctx.fill();
   ctx.globalAlpha = 1;
+}
+
+// ============================================================
+// タイル描画
+// 上部を明るく、下部を少し暗くして立体感を出す
+// ============================================================
+
+function drawTile(x, y, w, h, color, alpha = 1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // ----------------------------------------------------------
+  // 色をRGBに変換
+  // ----------------------------------------------------------
+
+  const rgb = hexToRgb(color);
+
+  if (!rgb) {
+    ctx.restore();
+    return;
+  }
+
+  // 明るい色・暗い色を作る
+  const lightColor = `rgb(
+    ${Math.min(255, rgb.r + 45)},
+    ${Math.min(255, rgb.g + 45)},
+    ${Math.min(255, rgb.b + 45)}
+  )`;
+
+  const darkColor = `rgb(
+    ${Math.max(0, rgb.r - 35)},
+    ${Math.max(0, rgb.g - 35)},
+    ${Math.max(0, rgb.b - 35)}
+  )`;
+
+  // ----------------------------------------------------------
+  // 少しだけ下に暗い影
+  // ----------------------------------------------------------
+
+  const shadowOffset = Math.max(1, w * 0.04);
+
+  drawRoundedRect(x, y + shadowOffset, w, h, Math.min(6, w * 0.2), darkColor, 0.45 * alpha);
+
+  // ----------------------------------------------------------
+  // メインのタイル
+  // 上から下に少し暗くなるグラデーション
+  // ----------------------------------------------------------
+
+  const radius = Math.min(6, w * 0.2);
+
+  const gradient = ctx.createLinearGradient(x, y, x, y + h);
+
+  gradient.addColorStop(0, lightColor);
+  gradient.addColorStop(0.18, color);
+  gradient.addColorStop(0.75, color);
+  gradient.addColorStop(1, darkColor);
+
+  ctx.fillStyle = gradient;
+
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+  ctx.lineTo(x + w, y + h - radius);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+  ctx.lineTo(x + radius, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+  ctx.fill();
+
+  // ----------------------------------------------------------
+  // 上部に薄いハイライト
+  // ----------------------------------------------------------
+
+  const highlight = ctx.createLinearGradient(x, y, x, y + h * 0.4);
+
+  highlight.addColorStop(0, "rgba(255,255,255,0.28)");
+  highlight.addColorStop(1, "rgba(255,255,255,0)");
+
+  ctx.fillStyle = highlight;
+
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+  ctx.lineTo(x + w, y + h * 0.35);
+  ctx.lineTo(x, y + h * 0.35);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// ============================================================
+// HEXカラーをRGBに変換
+// ============================================================
+
+function hexToRgb(hex) {
+  const match = hex.match(/^#([0-9a-f]{6})$/i);
+
+  if (!match) return null;
+
+  return {
+    r: parseInt(match[1].substring(0, 2), 16),
+    g: parseInt(match[1].substring(2, 4), 16),
+    b: parseInt(match[1].substring(4, 6), 16),
+  };
 }
 
 function initEmptyGrid() {
@@ -108,14 +219,16 @@ function drawGrid() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // 背景のマス目
-  ctx.strokeStyle = "#dfdfdf";
-  ctx.lineWidth = 0.3;
+  ctx.strokeStyle = "#555";
+  ctx.lineWidth = 0.5;
+
   for (let x = 0; x <= cols; x++) {
     ctx.beginPath();
     ctx.moveTo(x * tileSize, 0);
     ctx.lineTo(x * tileSize, canvas.height);
     ctx.stroke();
   }
+
   for (let y = 0; y <= rows; y++) {
     ctx.beginPath();
     ctx.moveTo(0, y * tileSize);
@@ -127,14 +240,17 @@ function drawGrid() {
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       const color = grid[y][x];
+
       if (color) {
-        drawRoundedRect(x * tileSize, y * tileSize, tileSize - 0.5, tileSize - 0.5, 6, color);
+        const gap = Math.max(2, tileSize * 0.08);
+
+        drawTile(x * tileSize + gap, y * tileSize + gap, tileSize - gap * 2, tileSize - gap * 2, color);
       }
     }
   }
 
   fallingTiles.forEach((t) => {
-    drawRoundedRect(t.x, t.y, tileSize - 2, tileSize - 2, 6, t.color, t.alpha);
+    drawTile(t.x, t.y, tileSize - 2, tileSize - 2, t.color, t.alpha);
   });
 }
 

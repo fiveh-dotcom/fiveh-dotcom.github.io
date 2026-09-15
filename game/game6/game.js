@@ -1490,26 +1490,20 @@ function draw() {
 // ============================================================
 
 function drawGrid() {
-  ctx.strokeStyle = "#333";
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#555";
+  ctx.lineWidth = 0.5;
 
   for (let x = 0; x <= cols; x++) {
     ctx.beginPath();
-
     ctx.moveTo(x * cellSize, 0);
-
     ctx.lineTo(x * cellSize, canvasHeight);
-
     ctx.stroke();
   }
 
   for (let y = 0; y <= rows; y++) {
     ctx.beginPath();
-
     ctx.moveTo(0, y * cellSize);
-
     ctx.lineTo(canvasWidth, y * cellSize);
-
     ctx.stroke();
   }
 }
@@ -1538,9 +1532,7 @@ function lightenColor(color, amount) {
   }
 
   const r = Math.min(255, Math.round(rgb.r + (255 - rgb.r) * amount));
-
   const g = Math.min(255, Math.round(rgb.g + (255 - rgb.g) * amount));
-
   const b = Math.min(255, Math.round(rgb.b + (255 - rgb.b) * amount));
 
   return `rgb(${r}, ${g}, ${b})`;

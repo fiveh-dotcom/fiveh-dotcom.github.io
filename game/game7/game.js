@@ -651,8 +651,8 @@ function drawBoard() {
   ctx.fillRect(0, 0, canvasSize, canvasSize);
 
   // 内側のグリッド
-  ctx.strokeStyle = "#333";
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#555";
+  ctx.lineWidth = 0.5;
 
   for (let r = 1; r < rows; r++) {
     const y = r * blockSize;
@@ -671,52 +671,6 @@ function drawBoard() {
     ctx.lineTo(x, canvasSize);
     ctx.stroke();
   }
-
-  // ----------------------------------------------------------
-  // 外周
-  // ----------------------------------------------------------
-
-  ctx.strokeStyle = "#fff";
-  ctx.lineWidth = 8;
-
-  // 上
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(canvasSize, 0);
-  ctx.stroke();
-
-  // 左
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(0, canvasSize);
-  ctx.stroke();
-
-  // 下
-  ctx.beginPath();
-  ctx.moveTo(0, canvasSize);
-  ctx.lineTo(canvasSize, canvasSize);
-  ctx.stroke();
-
-  // ----------------------------------------------------------
-  // 右側
-  //
-  // 2行目だけ出口なので線を描かない
-  // ----------------------------------------------------------
-
-  const exitTop = 2 * blockSize;
-  const exitBottom = 3 * blockSize;
-
-  // 右上
-  ctx.beginPath();
-  ctx.moveTo(canvasSize, 0);
-  ctx.lineTo(canvasSize, exitTop);
-  ctx.stroke();
-
-  // 右下
-  ctx.beginPath();
-  ctx.moveTo(canvasSize, exitBottom);
-  ctx.lineTo(canvasSize, canvasSize);
-  ctx.stroke();
 }
 
 // ============================================================

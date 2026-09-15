@@ -36,6 +36,15 @@
         font-size: 20px;
       }
 
+      #gameBoard {
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+        aspect-ratio: 1 / 1;
+        background: #111;
+        box-sizing: border-box;
+      }
+
       #gameCanvas {
         width: 100%;
         max-width: 400px;
@@ -44,6 +53,59 @@
         box-sizing: border-box;
         display: block;
         touch-action: none;
+      }
+
+      /* 外枠 */
+      .board-border {
+        position: absolute;
+        background: #fff;
+        z-index: 2;
+        pointer-events: none;
+      }
+
+      /* 上 */
+      .board-border.top {
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+      }
+
+      /* 左 */
+      .board-border.left {
+        top: 0;
+        left: 0;
+        width: 2px;
+        height: 100%;
+      }
+
+      /* 下 */
+      .board-border.bottom {
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+      }
+
+      /*
+       * 6×6盤面なので、2行目の高さは全体の1/6。
+       * 
+       * 出口は2行目なので、
+       * 上側は2マス分
+       * 下側は3マス分
+       */
+      .board-border.right-top {
+        top: 0;
+        right: 0;
+        width: 2px;
+        height: calc(100% / 3);
+      }
+
+      .board-border.right-bottom {
+        bottom: 0;
+        right: 0;
+        width: 2px;
+        height: calc(100% / 2);
       }
 
       #resetStageBtn,
@@ -65,7 +127,18 @@
       <div id="stage">Stage: 1</div>
       <div id="score">Score: 0</div>
     </div>
-    <canvas id="gameCanvas"></canvas>
+    <div id="gameBoard">
+      <canvas id="gameCanvas"></canvas>
+
+      <!-- 外枠 -->
+      <div class="board-border top"></div>
+      <div class="board-border left"></div>
+      <div class="board-border bottom"></div>
+
+      <!-- 右側：出口の上下だけ -->
+      <div class="board-border right-top"></div>
+      <div class="board-border right-bottom"></div>
+    </div>
     <button id="resetStageBtn">ステージリセット</button>
     <button id="startBtn">ゲームスタート</button>
 
